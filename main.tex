@@ -1,0 +1,906 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% LaTeX Template for ECAI Papers 
+%%% Prepared by Ulle Endriss (version 1.0 of 2023-12-10)
+
+%%% To be used with the ECAI class file ecai.cls.
+%%% You also will need a bibliography file (such as mybibfile.bib).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Start your document with the \documentclass{} command.
+%%% Use the first variant for the camera-ready paper.
+%%% Use the second variant for submission (for double-blind reviewing).
+
+\documentclass{ecai} 
+%\documentclass[doubleblind]{ecai} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Load any packages you require here. 
+
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+
+\usepackage{amsthm}
+\usepackage{booktabs}
+%\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{paralist}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Define any theorem-like environments you require here.
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{definition}{Definition}
+\newtheorem{property}{Property}
+\newenvironment{problem}[1]
+  {\vspace{\baselineskip}\noindent\textbf{Problem} (#1).\itshape}
+  {\par}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Define any new commands you require here.
+
+\newcommand{\BibTeX}{B\kern-.05em{\sc i\kern-.025em b}\kern-.08em\TeX}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frontmatter}
+
+%%% Use this command to specify your submission number.
+%%% In doubleblind mode, it will be printed on the first page.
+
+\paperid{123} 
+
+%%% Use this command to specify the title of your paper.
+
+\title{Surrogate-Based Smart Predict-and-Schedule}
+
+%%% Use this combinations of commands to specify all authors of your 
+%%% paper. Use \fnms{} and \snm{} to indicate everyone's first names 
+%%% and surname. This will help the publisher with indexing the 
+%%% proceedings. Please use a reasonable approximation in case your 
+%%% name does not neatly split into "first names" and "surname".
+%%% Specifying your ORCID digital identifier is optional. 
+%%% Use the \thanks{} command to indicate one or more corresponding 
+%%% authors and their email address(es). If so desired, you can specify
+%%% author contributions using the \footnote{} command.
+
+%\author[A]{\fnms{First}~\snm{Author}\orcid{....-....-....-....}\thanks{Corresponding Author. Email: somename@university.edu.}\footnote{Equal contribution.}}
+%\author[B]{\fnms{Second}~\snm{Author}\orcid{....-....-....-....}\footnotemark}
+%\author[B,C]{\fnms{Third}~\snm{Author}\orcid{....-....-....-....}} 
+
+%\address[A]{Short Affiliation of First Author}
+%\address[B]{Short Affiliation of Second Author and Third Author}
+%\address[C]{Short Alternate Affiliation of Third Author}
+
+%%% Use this environment to include an abstract of your paper.
+
+\begin{abstract}
+Task scheduling is a fundamental challenge in artificial intelligence, with applications in manufacturing, logistics, and cloud computing. In settings with uncertainty and historical data, smart predict-and-optimize (SPO) methods offer a promising data-driven approach by minimizing empirical regret—the gap between the learned and optimal solutions in training data. However, applying SPO to even simple scheduling problems is hindered by the non-differentiability of common objective functions. We address this limitation by proposing a novel method inspired by learn-to-rank (LTR) techniques, introducing a sigmoid-based surrogate loss that approximates the original scheduling objective. This surrogate enjoys desirable theoretical properties and enables end-to-end training of neural networks to solve a well-studied scheduling
+problem, namely that of minimizing the sum of completion times on a single machine. Experiments on synthetic benchmarks and a real-world healthcare scheduling dataset show that our approach consistently outperforms state-of-the-art SPO and LTR methods across vast majority of problem instances.
+\end{abstract}
+
+\end{frontmatter}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+\label{sec:introduction}
+
+Scheduling involves allocating limited resources to tasks over time to optimize on various objectives, such as minimizing 
+sum of completion times or maximizing throughput~\cite{baker2018principles}.
+It is a foundational problem in artificial intelligence, with applications in manufacturing, logistics, cloud computing, and beyond~\cite{pinedo2022scheduling}. 
+Traditional scheduling methods often rely on 
+restrictive assumptions, e.g., that task durations are deterministic~\cite{pinedo2022scheduling}. However, 
+real-world settings are inherently uncertain, with task durations influenced by factors such as task complexity, 
+resource availability, and environmental variability. 
+These challenges necessitate the 
+development of robust, data-driven approaches capable of effectively handling uncertainty.
+
+Smart predict-and-optimize (SPO) methods offer a promising paradigm for 
+addressing such challenges~\cite{elmachtoub2022smart}. By using
+historical data, 
+SPO directly integrates predictive modeling with optimization 
+to minimize empirical regret, 
+namely the difference between the learned solution and the true optimal solution. 
+Despite their potential, a 
+key challenge SPO methods face is the non-differentiability of 
+common scheduling objectives, which leads to intractable solutions.
+
+To overcome this limitation, we propose an SPO method for task scheduling that addresses the non-differentiability problem. Specifically, we 
+are inspired by the learn-to-rank (LTR) framework~\cite{burges2005learning}
+coming from machine learning, which
+focuses on ranking items according to some pre-defined
+scoring function. Previous work has demonstrated
+a connection between scheduling and 
+LTR by leveraging ranking-based techniques to optimize scheduling outcomes in large language models~\cite{fu2024efficient}. 
+
+Building on this direction, our work introduces a novel approach: 
+instead of optimizing generalized ranking metrics (as 
+previously done in LTR), we approximate the actual 
+objective function of the underlying scheduling problem 
+using a sigmoid-based surrogate. This enables a more direct alignment between the scheduling objective and the learning process through end-to-end training of neural networks. Moreover, we prove several desired 
+properties of the surrogate loss function,
+and link it to existing work on LTR. These properties guarantee
+that the regret is correctly approximated in the limit,
+and that efficient training of neural nets can lead
+to smart(er) prediction and scheduling. Our approach offers a principled direction for further exploration of surrogate-based methods in scheduling, with potential to bridge learning, ranking, and optimization. % more effectively.
+
+To validate our approach, we conduct a comprehensive empirical evaluation on both synthetic and real-world scheduling problems. On synthetic datasets, our sigmoid-based surrogate consistently outperforms SPO+ and Rank Loss in the scheduling completion time (SCT) objective, achieving up to a 140\% improvement. 
+
+To further assess real-world applicability, we apply our method to a one-year dataset from an outpatient cancer hospital in the United States, where models are trained on three weeks of data to schedule one week within each month. On average, our sigmoid-based surrogate achieves the lowest SCT error of 31.6\%, compared to 47.6\% for SPO+, and 33.8\% for LTR. This demonstrates the robustness and practical value of our approach in real-world scheduling scenarios. To summarize, our main contributions
+are as follows.
+\begin{enumerate}
+\item We propose a sigmoid-based surrogate loss, inspired by learn-to-rank, to approximate non-differentiable scheduling objectives in the SPO framework.
+\item We provide theoretical guarantees, including regret consistency, and show efficient neural network training for uncertain scheduling.
+\item We empirically validate our approach on both synthetic and real-world scheduling problems, demonstrating improvements over state-of-the-art baselines.
+\end{enumerate} Against this background, the remainder of this paper is structured as follows. Section~\ref{sec:problem} defines the problem of smart predict-and-schedule. Section~\ref{sec:methodology} introduces our novel sigmoid-based surrogate loss function and discusses its theoretical properties. Section~\ref{sec:evaluation} presents an empirical evaluation of the proposed loss function using synthetically generated data. Section~\ref{sec:case_study} provides a case study demonstrating the practical applicability and robustness of our solution to real-world data. Finally, Section~\ref{sec:related_work} reviews related work and Section~\ref{sec:conclusion} concludes the paper. \section{The problem of smart predict-and-schedule}
+\label{sec:problem}
+
+This work examines smart-and-optimize (SPO) methods applied to scheduling problems.
+We begin by defining the basic scheduling problem under consideration, namely the single-machine sum of completion times (SCT) minimization problem. % (referred to as SCT hereafter). 
+We then describe the task uncertainty model, and finally formulate the learning problem addressed in this paper.
+
+\paragraph{The scheduling problem.}
+We consider the following single-resource scheduling setting: a resource is assigned to process $n$ tasks (e.g., jobs scheduled for a given day). All $n$ tasks are assumed to be available at the beginning of the scheduling period, but their processing times are unknown. The resource is non-idling, working continuously until all tasks are completed. The objective is to find a task sequencing that minimizes the sum of completion times (SCT).
+When the true durations $y_1, \ldots, y_n$ are known, the optimal sequence follows the shortest processing time first (SPT) heuristic, arranging tasks in ascending order of their durations~\cite{pinedo2022scheduling}.
+
+In realistic settings, however, the actual task durations are unknown. Instead, historical data with features correlated with task durations are available. This historical data can be used to predict task durations and subsequently schedule the tasks using the SPT rule. However, prediction errors can lead to suboptimal schedules.
+
+\paragraph{Modeling uncertainty in task durations.}
+Adopting a supervised learning framework, let $x$ denote a $p$-dimensional feature vector describing a task. For $n$ independent tasks with unknown durations $y_i$ ($i=1,\ldots,n$), we assume the following model~\cite{hastie2009elements}:
+\begin{equation} \label{eq:master_ppm}
+y_i = f(x_i) + \epsilon_i,
+\end{equation}
+where $f$ is an unknown deterministic function, and $\epsilon_i$ is a random noise term with mean $0$ and variance $\sigma^2$ (identically distributed across tasks).
+
+\paragraph{The learning problem.}
+A dataset \(\mathcal{D} = \{(x_j, y_j)\}_{j=1}^{N}\) contains historical feature-duration pairs, where typically \(N \gg n\). The goal is to leverage this historical data to learn a predictor \(\hat{f}(x)\) to optimize scheduling decisions.
+
+A straightforward approach is the `predict then optimize' paradigm mentioned in~\cite{Mandi2020}, in which \(\hat{f}\) is learned by minimizing empirical mean squared error (MSE):
+\begin{equation}
+\hat{f} = \arg\min_{f \in \mathcal{F}} \sum_{i=1}^{N} \bigl(f(x_i) - y_i\bigr)^2,
+\end{equation}
+where \(\mathcal{F}\) denotes the function class (e.g., linear models, neural networks). The resulting model predicts durations, and the optimization phase solves the scheduling problem using these predictions.
+
+In other words, prediction errors are unavoidable, but not all impact the task order in scheduling. MSE treats all errors the same, even though only those that change task order impact the SCT objective. Thus, minimizing MSE may not effectively reduce SCT, as it overlooks the distinction between harmless and harmful errors.
+
+To better understand this, consider a sequencing of tasks where the task placed in position \(k\) has duration \(y_k\). The total SCT can be expressed as:
+\begin{equation}
+\mathrm{SCT} = \sum_{k=1}^n (n+1-k) \, y_k.
+\end{equation}
+
+Swapping two tasks at positions \(i < j\) alters their contribution by:
+\begin{align}
+R_{i,j} &= \big[(n{+}1{-}i)\, y_j + (n{+}1{-}j)\, y_i\big] \nonumber \\
+       &\quad - \big[(n{+}1{-}i)\, y_i + (n{+}1{-}j)\, y_j\big] \nonumber \\
+       &= (j - i)(y_j - y_i)
+\end{align}
+
+A pair \((i,j)\) is said to be \emph{misordered} if \(y_i < y_j\) but the schedule places \(y_i\) after \(y_j\), leading to an increase in SCT of \((j-i)(y_j - y_i)\). Clearly this conditional error, which represents the actual cost of mispredicting task durations, has a different structure from the MSE, which represents the incurred cost of mispredicting task durations. To solve this problem, we aim to find a loss function for the prediction phase, different from MSE, that minimizes the actual cost of mispredicting task durations.
+
+Accordingly, we define the smart predict then schedule problem:
+
+\begin{problem}{Regret minimization in SCT} \label{prob:problem1}
+Find $\hat{f}$ that minimizes the expected regret:
+\begin{equation} \label{eq:smartsched}
+L_{\text{regret}} = \sum_{\substack{y_i < y_j}} R_{i,j} \cdot \max(0, \text{sign}(\hat{f}(x_i) - \hat{f}(x_j))).
+\end{equation}
+\end{problem}
+
+For example, consider two tasks \(i\) and \(j\) with true durations \(y_i < y_j\). If \(\hat{f}(x_i) > \hat{f}(x_j)\), the tasks are misordered, increasing the SCT. The regret-based loss directly targets such misorderings by reducing their probability. This means that even large prediction errors may be tolerated if they are symmetric, regardless of their impact on task ordering.  
+In contrast, regret-based models focus explicitly on getting the order right—yielding better scheduling decisions even when prediction accuracy is imperfect.
+Yet, directly optimizing regret is challenging due to the non-differentiability of the objective and the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}. To address this, we propose a differentiable surrogate loss that approximates pairwise misorderings, facilitating end-to-end learning for smart predict-and-schedule.
+
+%methodology
+
+\section{A General Framework for Surrogate-Based Predict-and-Optimize}
+\label{sec:framework}
+
+The surrogate methodology proposed in this paper extends beyond single-machine
+scheduling and applies to a broad class of decision problems in which the
+deterministic variant is polynomial-time solvable. In this section, we outline a
+general framework for integrating prediction and optimization through
+surrogate losses derived from deterministic optimal policies. This framework
+formalizes the key steps required to construct differentiable learning
+objectives that approximate discrete decision rules.
+
+\subsection{Problem setting}
+
+Let $\mathcal{I}$ denote an instance of a decision problem, consisting of $n$
+items (e.g., tasks or jobs), each described by a feature vector $x_i \in
+\mathbb{R}^p$. The decision problem depends on unknown parameters
+$\theta^\star_i \in \Theta$, which must be inferred from historical data.
+Examples of parameters include processing times, release dates, delays, or
+transition costs. A feasible decision is represented by $\pi \in \Pi$, where
+$\Pi$ denotes the set of allowable schedules or action plans. The true objective
+value of $\pi$ under parameters $\theta^\star = (\theta^\star_1,\dots,
+\theta^\star_n)$ is denoted by
+\[
+C(\pi; \theta^\star).
+\]
+
+The learning task is to construct a predictor $\hat{\theta}=f_\omega(x)$, with
+parameters $\omega$, that yields a high-quality decision
+$\pi(\hat{\theta})$ obtained by solving the deterministic problem under
+predicted parameters. The regret of using $\pi(\hat{\theta})$ instead of the
+optimal solution is
+\begin{equation}
+\label{eq:regret-general}
+R(\hat{\theta},\theta^\star)
+=
+C(\pi(\hat{\theta});\theta^\star)
+-
+C(\pi(\theta^\star);\theta^\star),
+\end{equation}
+which is generally non-differentiable with respect to~$\omega$. The framework 
+below addresses this challenge by exploiting problem structure.
+
+\subsection{Step 1: Identify unknown parameters}
+For each job $i$, define the unknown parameter vector $\theta_i^\star$ governing
+its contribution to the optimization problem. For scheduling, these may be
+processing times or resource requirements. Let a dataset
+$\mathcal{D}=\{(x_i,\theta_i^\star)\}_{i=1}^N$ be given, consisting of past
+observations from which a predictor $f_\omega$ can be trained.
+
+\subsection{Step 2: Identify a deterministic polynomial-time counterpart}
+
+Many optimization problems become tractable when $\theta^\star$ is known.
+Suppose that, for known parameters $\theta$, the deterministic variant admits a
+polynomial-time algorithm $\mathcal{A}$ that returns an optimal decision:
+\[
+\pi(\theta) = \mathcal{A}(\theta).
+\]
+Examples include:
+\begin{itemize}
+    \item single-machine scheduling problems where sorting rules are optimal,
+    \item two-machine flow shops solved by Johnson’s rule,
+    \item shortest-path problems solvable via Dijkstra’s algorithm,
+    \item bipartite matchings solved via the Hungarian algorithm.
+\end{itemize}
+
+Such algorithms typically reveal a structural decomposition:
+\[
+\mathcal{A}(\theta)
+\;\text{induces}\;
+\text{(i) partitions, (ii) rankings, or (iii) threshold decisions}.
+\]
+This structure is key for constructing differentiable surrogates.
+
+\subsection{Step 3: Derive a smooth surrogate from $\mathcal{A}$}
+
+The deterministic algorithm $\mathcal{A}$ induces a discrete mapping from
+parameters~$\theta$ to decisions~$\pi$. To train a neural network via gradient
+descent, we replace this mapping with a differentiable surrogate loss
+$L_{\mathrm{surr}}$ that approximates the regret in
+(\ref{eq:regret-general}). The construction follows three principles:
+
+\paragraph{(a) Structural decomposition.}
+Let $\mathcal{A}$ determine decisions through a sequence of local comparisons,
+such as:
+\[
+\theta_i \prec \theta_j \quad\text{or}\quad \theta_i \in G_k.
+\]
+Identify all relevant comparisons, partitions, or rankings.
+
+\paragraph{(b) Sigmoid relaxations.}
+Each discrete comparison $g(\theta_i,\theta_j)$ is replaced by a smooth sigmoid
+approximation:
+\[
+\sigma\!\left( \frac{h_\omega(x_i,x_j)}{\lambda} \right),
+\]
+where $h_\omega$ is a learned score difference and $\lambda>0$ controls the
+sharpness of the relaxation.
+
+\paragraph{(c) Weighted aggregation.}
+The surrogate loss is assembled as a weighted sum over all structural decisions:
+\begin{equation}
+\label{eq:general-surrogate}
+L_{\mathrm{surr}}(\omega)
+=
+\sum_{(i,j) \in \mathcal{C}}
+w_{i,j}\,
+\sigma\!\left(
+\frac{h_\omega(x_i,x_j)}{\lambda}
+\right),
+\end{equation}
+where $\mathcal{C}$ is the set of critical comparisons defined by
+$\mathcal{A}$, and $w_{i,j}$ reflects their contribution to the regret.
+As $\lambda \to 0$, the surrogate approaches the discrete structure of
+$\mathcal{A}$, while for $\lambda>0$ the function remains smooth.
+
+\subsection{Step 4: Train the prediction model}
+
+The neural network $f_\omega$ is trained by minimizing the surrogate loss:
+\[
+\omega^\star
+= 
+\arg\min_{\omega}
+L_{\mathrm{surr}}(\omega).
+\]
+At inference time, the predicted parameters $\hat{\theta}=f_{\omega^\star}(x)$
+are passed into the polynomial-time algorithm:
+\[
+\hat{\pi}
+=
+\mathcal{A}(\hat{\theta}).
+\] This approach applies broadly to scheduling, routing, assignment, and other
+combinatorial optimization problems in which the deterministic case is
+tractable and structurally interpretable. In this paper, we demonstrate two scheduling problems
+under uncertaitny, that one can solve using our framework. 
+
+
+
+
+\section{Surrogate-based learning to schedule}
+\label{sec:methodology}
+
+This section presents the main contribution of the paper, 
+which is a surrogate-based loss function that approximates regret in the SCT problem, but is differentiable such that it can be used in the prediction step. We also establish desirable theoretical properties and limitations, which are further explored in the evaluation section.
+
+\subsection{Sigmoid loss for SPO} 
+
+The proposed sigmoid-based loss penalizes misordered task pairs, encouraging the model to predict task durations aligned with their true ordering. The empirical sigmoid loss is defined as:
+\begin{equation}
+L_{\text{sigmoid}}
+\;=\;
+\sum_{\substack{y_i < y_j}}
+  R_{i,j}\,
+  \sigma\!\Bigl( \tfrac{\hat{f}(x_i) - \hat{f}(x_j)}{\lambda} \Bigr),
+\end{equation}
+where \(\sigma(x) = \tfrac{1}{1+e^{-x}}\) is the sigmoid function, and \(\lambda>0\) controls the steepness around misordered predictions. A larger \(\lambda\) smooths transitions, while a smaller \(\lambda\) sharpens sensitivity to misorderings.
+
+By minimizing the empirical sigmoid loss, the learned model \(\hat{f}\) is encouraged to satisfy \(\hat{f}(x_j) > \hat{f}(x_i)\) whenever \(y_j > y_i\). Formally:
+\[
+\hat{f}
+\;=\;
+\arg\min_{f\in\mathcal{F}}
+  L_{\text{sigmoid}}(f),
+\]
+where \(\mathcal{F}\) is the space of candidate functions, such as neural networks. Thus, training adjusts \(\hat{f}\) to minimize the number and severity of misordered pairs, aligning predictions with true task durations. When \(\hat{f}\) preserves correct orderings, the sigmoid term remains near zero, driving \(L_{\text{sigmoid}}\) downward.
+
+\subsection{Properties of the sigmoid-based surrogate}
+
+To show the usefulness of the sigmoid-based surrogate loss function for predict and schedule, we need to show that it is differentiable and approximates the regret in the SCT problem.
+
+The non-differentiability of the regret loss in Equation~\ref{eq:smartsched} is caused by the use of \(\max(0, \text{sign}(x))\), effectively a \(\text{ReLU}(\text{sign}(x))\) operation that is non-differentiable at \(x=0\). To solve the non-differentiability problem, we replace this with the sigmoid function \(\sigma(x)\) as a smooth approximation, enabling gradient-based optimization.
+Several properties of the sigmoid-based surrogate support its effectiveness:
+
+\begin{property}[Differentiability and smooth gradients]
+\label{prop:differentiability}
+The surrogate loss \(L_{\text{sigmoid}}\) is infinitely differentiable. The derivative of the sigmoid function is:
+\[
+\sigma'(u) = \sigma(u)(1-\sigma(u)).
+\]
+\end{property}
+\noindent Differentiability ensures stable gradient-based optimization throughout training, which allows us to train a neural network to solve
+the scheduling problem via an SPO-like method.
+
+\begin{property}[Tunable sensitivity via \(\lambda\)]
+The steepness of the decision boundary is controlled by \(\lambda>0\).
+\end{property}
+\begin{proof}
+The derivative \(\sigma'(u)\) is maximized near \(u=0\). Smaller \(\lambda\) values sharpen the sigmoid, increasing sensitivity to small misorderings.
+\end{proof}
+\noindent The hyperparameter \(\lambda\) thus offers a mechanism to fine-tune model responsiveness to near-boundary predictions. Higher $\lambda$
+yields low penalty for misorderings, while low values or $\lambda$
+push the objective to converge to Equation~\ref{eq:smartsched}.
+
+\begin{property}[Order sensitivity and penalization]
+\label{prop:order}
+The sigmoid loss penalizes misordered task pairs.
+\end{property}
+\begin{proof}
+For tasks \(i\) and \(j\) where \(y_j > y_i\), the loss contribution is:
+\[
+(j-i)(y_j-y_i)\,\sigma\!\Bigl(\tfrac{\hat{f}(x_i) - \hat{f}(x_j)}{\lambda}\Bigr).
+\]
+Correctly ordered pairs (\(\hat{f}(x_j) > \hat{f}(x_i)\)) yield negative inputs to \(\sigma\), resulting in near-zero penalties. Incorrectly ordered pairs (\(\hat{f}(x_i) > \hat{f}(x_j)\)) yield positive inputs, maximizing the penalty.
+\end{proof}
+\noindent As \(\lambda\to\infty\), all penalties converge to a uniform value, diminishing order sensitivity.
+
+\begin{property}[Sensitivity to small misorderings]
+\label{prop:sensitivity}
+The sigmoid loss penalizes near-boundary cases where \(\hat{f}(x_i) \approx \hat{f}(x_j)\).
+\end{property}
+\begin{proof}
+When \(\hat{f}(x_i) \approx \hat{f}(x_j)\), the input to the sigmoid approaches zero, yielding:
+\[
+\sigma(0) = 0.5.
+\]
+Thus, pairs with uncertain ordering are still penalized, encouraging the model to separate predictions more clearly.
+\end{proof} Finally, we present a convergence guarantee:
+
+\begin{theorem}[Convergence to regret loss]
+\label{thm:lambda_impact}
+The surrogate loss \(L_{\text{sigmoid}}\) converges to the regret loss \(L_{\text{regret}}\) as \(\lambda \to 0\).
+\end{theorem}
+\begin{proof}
+As \(\lambda \to 0\), the scaled differences \((\hat{f}(x_i)-\hat{f}(x_j))/\lambda\) tend toward \(\pm\infty\), and the sigmoid function \(\sigma(u)\) converges to a step function:
+\[
+\sigma(u) \to 
+\begin{cases}
+1, & u > 0, \\
+0, & u \leq 0,
+\end{cases}
+\]
+thus recovering the original regret loss.
+\end{proof} \noindent These properties position the sigmoid-based surrogate as a natural fit for learning-based scheduling under uncertainty.
+
+
+\subsection{Limitations of the sigmoid-based loss}
+
+While effective for single-machine SCT minimization, several limitations remain. First, the method has not been extended to multi-machine or distributed scheduling scenarios. Handling task dependencies, release times, or resource constraints would require significant modifications.
+Second, the hyperparameter \(\lambda\) critically influences model performance. Improper selection may cause either unstable training (if \(\lambda\) is too small) or diminished order sensitivity (if \(\lambda\) is too large), necessitating careful hyperparameter tuning.
+Third, pairwise loss computation scales quadratically with the number of tasks, which may become computationally expensive for large-scale instances. Although sampling techniques can mitigate this, further work is needed to improve scalability. 
+Finally, the underlying deterministic scheduling problem must be solvable in polynomial time; otherwise, training becomes computationally infeasible, as exact solutions used in the learning process are not efficiently obtainable.
+
+
+Addressing these limitations is an important direction for future work, with the goal of broadening the applicability of surrogate-based scheduling methods to more complex and large-scale environments.
+
+
+\section{Surrogate Learning in Two-Machine Flow Shops}
+\label{sec:flowshop}
+
+The surrogate framework developed in Section~\ref{sec:methodology} naturally extends
+to other scheduling problems whose optimal deterministic policies admit simple
+structural characterizations. In this section, we demonstrate this by considering
+the classical two-machine flow shop scheduling problem with makespan minimization,
+denoted $F2\|C_{\max}$, for which the optimal policy is given by Johnson’s rule.
+We show how to construct a smooth surrogate loss that mimics the structure of
+the optimal rule while remaining differentiable and suitable for gradient-based
+learning.
+
+\subsection{Problem structure and implications for learning}
+
+In the $F2\|C_{\max}$ setting, each job $i$ has two true processing times 
+$(p_{i1}, p_{i2})$, one for each machine. Johnson’s rule partitions all jobs into
+two sets:
+\[
+G_1 = \{ i : p_{i1} < p_{i2} \}, 
+\qquad
+G_2 = \{ i : p_{i1} \ge p_{i2} \},
+\]
+orders $G_1$ in ascending $p_{i1}$, orders $G_2$ in descending $p_{i2}$, and 
+concatenates the two sequences. Consequently, the optimal sequence is determined
+by (i) the correct group assignment of each job and (ii) the correct ordering 
+within each group.
+
+When processing times are unknown and must be predicted from features $x_i$, the
+learning task is therefore not to approximate raw durations, but to approximate
+\emph{the structural decisions} induced by Johnson’s rule. To reflect this, each
+job $i$ is mapped to two scalar prediction scores
+\[
+(\hat{d}_i, \hat{s}_i) = f_\theta(x_i),
+\]
+where $\hat{d}_i \in \mathbb{R}$ is a \emph{group score} indicating whether the
+job should belong to $G_1$ or $G_2$, and $\hat{s}_i \in \mathbb{R}$ is a
+\emph{sortable score} used to determine the job’s relative position \emph{within}
+its assigned group. The predicted sequence then follows the structure of Johnson’s rule:
+\begin{enumerate}
+    \item Assign each job to $\hat{G}_1$ if $\hat{d}_i < 0$ and to $\hat{G}_2$ otherwise.
+    \item Sort $\hat{G}_1$ by increasing $\hat{s}_i$.
+    \item Sort $\hat{G}_2$ by decreasing $\hat{s}_i$.
+\end{enumerate}
+
+This parameterization separates the discrete grouping decision from the within-group ranking
+decision, reflecting the decomposition inherent in Johnson’s optimal policy.
+
+\subsection{A sigmoid-based surrogate for Johnson's rule}
+
+To train the model, we define a smooth surrogate loss consisting of two components:
+(1) a penalty for incorrect \emph{group assignment}, and
+(2) a penalty for incorrect \emph{within-group ordering}.
+Both components rely on sigmoidal approximations of indicator functions, as in
+Section~\ref{sec:methodology}.
+
+\paragraph{Group assignment surrogate.}
+For each job $i$, the true group indicator satisfies
+\[
+d_i = p_{i1} - p_{i2},
+\qquad
+i \in G_1 \iff d_i < 0.
+\]
+Incorrect assignment occurs when the predicted sign of $\hat{d}_i$ differs from the
+true sign of $d_i$. We define the group surrogate loss as
+\begin{equation}
+L_{\mathrm{group}}
+= 
+\sum_{i} 
+w_i \,
+\sigma\!\left( \frac{\hat{d}_i\, d_i}{\lambda} \right),
+\label{eq:group-loss}
+\end{equation}
+where $\sigma$ is the sigmoid function, $\lambda>0$ controls smoothness, and
+$w_i = |d_i|$ weights mistakes according to the severity of misclassification
+(the farther a job is from the decision boundary $p_{i1} = p_{i2}$, the more 
+important it is to assign it correctly). The term in~\eqref{eq:group-loss} is
+small when $\hat{d}_i$ has the correct sign with sufficient margin, and close to
+$1$ otherwise.
+
+\paragraph{Within-group surrogate.}
+Conditioned on correct group membership, the regret of the flow shop policy arises
+from misordering jobs within $G_1$ or $G_2$. For two jobs $i,j$:
+\begin{itemize}
+    \item If $i,j \in G_1$ and $p_{i1} < p_{j1}$, then $i$ should precede $j$.
+    \item If $i,j \in G_2$ and $p_{i2} > p_{j2}$, then $i$ should precede $j$.
+\end{itemize}
+We define the pairwise surrogate loss
+\begin{equation}
+L_{\mathrm{order}}
+=
+\sum_{\substack{i,j \in G_1 \\ p_{i1} < p_{j1}}}
+\sigma\!\left( \frac{\hat{s}_i - \hat{s}_j}{\lambda} \right)
++\!
+\sum_{\substack{i,j \in G_2 \\ p_{i2} > p_{j2}}}
+\sigma\!\left( \frac{\hat{s}_i - \hat{s}_j}{\lambda} \right).
+\label{eq:order-loss}
+\end{equation}
+As in the SCT surrogate, the sigmoid penalizes misordered pairs (i.e., cases where
+$\hat{s}_i > \hat{s}_j$ despite $i$ being correctly ordered before $j$), with 
+penalties diminishing smoothly when the ordering margin increases.
+
+\paragraph{Combined surrogate.}
+The full surrogate loss for Johnson’s rule is a weighted combination of the two components:
+\begin{equation}
+L_{\mathrm{Johnson}}
+=
+L_{\mathrm{group}}
++
+\alpha \, L_{\mathrm{order}},
+\label{eq:johnson-loss}
+\end{equation}
+where $\alpha>0$ balances between correct group classification and correct
+within-group ordering. As with the SCT surrogate, letting $\lambda \to 0$
+recovers the discrete decision structure of the underlying scheduling problem.
+The resulting objective is smooth, differentiable, and directly aligned with the
+structural requirements of the optimal $F2\|C_{\max}$ scheduling policy.
+
+
+\section{Empirical evaluation}\label{sec:evaluation}
+
+This section details the empirical evaluation of the proposed approach. We first describe the experimental setup, including dataset generation, benchmark methods, implementation details, and evaluation metrics. Next, we outline the experimental procedure for solving the scheduling problem and compare our method against existing baselines. Finally, we present the main experimental results and discuss the applicability and scalability of our approach.
+
+\subsection{Experimental setup}
+
+Experiments were conducted on synthetically generated datasets to evaluate the performance of the sigmoid-based surrogate loss under a range of scheduling scenarios. The experiments systematically varied data generation models, noise levels, task duration ranges, and benchmark comparisons.
+
+\paragraph{Datasets.}
+We constructed two synthetic datasets using linear and nonlinear functions to simulate varying complexity levels. This setup offers full control over noise and duration variability, allowing us to isolate the effect of surrogate loss choice. In the absence of established benchmarks, these two datasets support systematic evaluation.
+
+\begin{itemize}
+    \item \emph{Linear model:} \( f(x) = \mathbf{xw} \), where \(\mathbf{w}\) is a randomly generated weight vector, and \(\mathbf{x}\) consists of features uniformly sampled from \([0, 1]\).
+    
+    \item \emph{Nonlinear model:} A nonlinear combination is computed as:
+    \[
+    g(x) = 1.5x_1^2 + 2.0\sin(2\pi x_2) + x_3x_4 + 0.75x_5^3,
+    \]
+    where \(x_1, \dots, x_5\) are uniformly sampled features. This specific structure introduces smooth nonlinearities, feature interactions, and periodic components, capturing diverse patterns typical of real-world systems. The function was chosen to ensure that the learning task remains nontrivial, requiring the model to capture both local and global feature dependencies, while still being interpretable and reproducible. The final task durations were computed as:
+    \[
+    f(x) = 50 + \texttt{scale\_factor} \cdot (g(x) + 2),
+    \]
+    ensuring strictly positive durations, typically in the range \([50, 400]\) under standard settings.
+\end{itemize}
+
+Gaussian noise with standard deviation \(\sigma \in [0.1, 5]\) was added to simulate uncertainty. Task duration variability was adjusted through the \texttt{scale\_factor}.
+
+\paragraph{Benchmark methods.}
+We compared our method against two strong baselines. The first is \emph{SPO+}, a convex surrogate loss designed for predict-and-optimize tasks \cite{elmachtoub2022smart}, which focuses predictions on minimizing decision regret. The second is the \emph{logistic rank loss}, a Learning-to-Rank (LTR) surrogate loss \cite{fu2024efficient} that penalizes incorrect pairwise orderings using logistic regression.
+
+\paragraph{Implementation details.}
+The experiments were implemented in \emph{Python}: Neural networks were built using \emph{PyTorch (v1.x)}, with preprocessing handled by \emph{NumPy (v1.x)} and \emph{scikit-learn (v0.x)}. Visualizations used \emph{Matplotlib (v3.x)}. Random seeds were fixed for reproducibility, and each experiment was repeated across multiple runs. Confidence intervals were computed via bootstrapping. 
+
+\paragraph{Evaluation metric.}
+The primary evaluation metric was the \emph{Sum of Completion Times (SCT)} achieved by predicted task orderings. Lower SCT values indicate better scheduling performance. Percentage improvements relative to the proposed 
+surrogate-based method were also reported. SCT errors were visualized on a logarithmic scale to highlight relative differences across noise levels and duration ranges.
+
+\subsection{Experimental procedure}
+
+Datasets were generated using the described models, with varying noise levels and task duration ranges. Two experimental settings were considered:
+\begin{itemize}
+    \item \emph{Fixed noise levels:} The \texttt{scale\_factor} was varied to assess performance under different task duration variability.
+    \item \emph{Fixed ranges:} Noise levels (\(\sigma\)) were varied to evaluate model robustness to prediction uncertainty.
+\end{itemize}
+Each dataset was normalized and split into 80\% training and 20\% test subsets.
+
+For each setting, models were trained with \emph{SPO+}, \emph{Rank Loss}, and the \emph{Sigmoid Surrogate} objectives using two-hidden-layer neural networks. Training used the Adam optimizer with early stopping, and pairwise methods sampled task pairs per iteration. Models were evaluated on unseen test data by comparing SCT values against the true optimal order, with results averaged over ten runs.
+
+\subsection{Results}
+
+Figure~\ref{fig:all-methods-comparison} presents a comparison of SPO+, Rank Loss, and the proposed sigmoid surrogate on nonlinear datasets with uneven task durations. The x-axis shows the noise standard deviation, and the y-axis plots the logarithmic SCT error relative to the optimal solution. The sigmoid surrogate demonstrates robustness across noise levels, consistently achieving lower SCT compared to SPO+ and Rank Loss.
+
+Figure~\ref{fig:improvement-percentages} shows the percentage improvement of SPO+ and Rank Loss relative to the sigmoid surrogate. Although SPO+ and Rank Loss perform competitively under low-noise conditions, their relative performance deteriorates as noise increases, underscoring the robustness of the proposed approach.
+
+Figure~\ref{fig:range-impact} examines performance as task duration ranges vary under a fixed noise level. The sigmoid surrogate maintains lower SCT errors across wide variability, highlighting its effectiveness in challenging scheduling scenarios. Our results demonstrate that the proposed sigmoid-based surrogate consistently outperforms SPO+ and Rank Loss in minimizing SCT, particularly under high-noise and high-variability conditions. 
+
+Turning to efficiency analysis, Table~\ref{tab:runtimes} reports the average runtime over 10 iterations for each method under consistent settings. The Sigmoid method averaged \emph{58.3 seconds}, SPO+ averaged \emph{57.3 seconds}, and Rank Loss averaged \emph{58.2 seconds}, demonstrating comparable computational costs across methods.
+While runtime is comparable across methods, the improved SCT minimization offered by the sigmoid surrogate positions it a promising choice for real-world scheduling applications involving uncertainty and variability.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.45\textwidth]{compare-methods-fixed-range.png}
+    \caption{Comparison of SPO+, Rank Loss, and the proposed surrogate method on nonlinear datasets. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
+    \label{fig:all-methods-comparison}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.45\textwidth]{improvement--percentage.png}
+    \caption{Percentage improvement of SPO+ and Rank Loss relative to the sigmoid surrogate. Positive values indicate worse performance
+    compared to the sigmoid surrogate loss.}
+    \label{fig:improvement-percentages}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.45\textwidth]{fixed--noise (2).png}
+    \caption{Impact of task duration range variability on SCT error for the three methods.}
+    \label{fig:range-impact}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Average runtime over 10 iterations per method.}
+\label{tab:runtimes}
+\begin{tabular}{lcc}
+\toprule
+Method & Runtime (seconds) \\
+\midrule
+Sigmoid surrogate & 58.3 \\
+SPO+ surrogate & 57.3 \\
+Rank Loss & 58.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% real data
+\section{Case study: patient scheduling}\label{sec:case_study}
+
+We further evaluated the proposed sigmoid-based surrogate loss on a real-world scheduling dataset collected from DayHospital, a cancer clinic
+in the United States. We start by describing the case, followed by the experimental setup and procedure, and lastly, we provide the results 
+and discuss their implications. 
+
+\subsection{Case description: scheduling in DayHospital}
+
+At \textit{DayHospital}, patients typically arrive at the clinic in the morning and complete their visits in the afternoon. These visits consist of a sequence of activities, which may include: \begin{enumerate}
+    \item \emph{Blood Draw} – the initial step of the visit, during which blood specimens are collected and sent for laboratory analysis;
+    \item \emph{Examination} – a consultation with a medical doctor or nurse practitioner (this step is optional and occasionally skipped);
+    \item \emph{Chemotherapy Infusion} – the final and typically longest step for patients receiving treatment.
+\end{enumerate} In this work, we focus on the \emph{examination stage} of the process. In our model, \textit{doctors are treated as single-server machines}, and \textit{patients are modeled as jobs} in a scheduling system. Each patient is assigned a pre-scheduled appointment time for the exam, which we treat as the known arrival time to the system. However, the \emph{duration of each examination is uncertain} and not known in advance.
+
+This setting reflects a typical outpatient environment in which variability and uncertainty in service times complicates the planning and sequencing of activities. While some patients may skip the examination altogether, it remains a central point in the care flow for many. Understanding and addressing the uncertainty in examination durations is therefore essential for optimizing provider schedules and reducing patient delays throughout the system.
+
+
+\subsection{Experimental setup}
+
+\paragraph{Dataset.} 
+
+We used two months of operational data from \textit{DayHospital}, specifically January and November 2021. Two primary sources of data were available for analysis:
+ \begin{itemize}
+    \item \emph{Real-Time Location System (RTLS) data}, which captures the movement of patients and providers throughout the facility at 3-second intervals.
+    \item \emph{Appointment data}, which includes scheduled appointment times for the blood draw station.
+\end{itemize} The dataset includes approximately 201,000 patient pathways, all of which involve a visit to the blood draw station. For each \textit{visible patient} at this station, we observe three key timestamps: the time of arrival, the time at which service begins, and the time at which service is completed. 
+
+Each record represents a scheduled medical appointment, characterized by several features. Following preprocessing, we filtered the dataset to focus specifically on \textit{Exam} appointments. The objective was to learn a model that predicts the actual appointment durations \( y_i \) from the available features \( x_i \), in a way that enables task sequencing to minimize the Sum of Completion Times (SCT).
+
+The feature vectors \(x_i\) were constructed using 
+appointment-level information such as \texttt{floor\_id} (different floors contain different departments), \texttt{scheduled\_time} (the appointment planned start time), \texttt{department}, \texttt{scheduled\_duration\_min} (the planned duration in minutes), \texttt{diagnosis}, \texttt{appointment\_type} (various exam types exist), and \texttt{link\_flag} (which indicates if the exam is followed by chemotherapy infusion). 
+
+To better reflect operational deployment, we organized the data by calendar months. For each month, the models were trained on the first \emph{three weeks} of appointments and evaluated on the appointments from the \emph{fourth week}. This setup simulates a realistic rolling horizon setting where models must generalize to near-future scheduling scenarios.
+
+\paragraph{Benchmark methods.}
+We evaluated our proposed approach against several benchmark loss functions commonly used in predictive scheduling tasks:
+
+\begin{itemize}
+    \item \emph{Rank Loss}: A pairwise ranking objective based on the negative log-likelihood of correct pairwise comparisons, encouraging accurate relative ordering of task durations.
+    
+    \item \emph{Mean Squared Error (MSE)}: A standard regression loss that minimizes squared differences between predicted and true durations, without considering the downstream scheduling objective. This is in essence
+    a predict-then-optimize approach~\cite{shahabikargar2014predicting}.
+    
+    \item \emph{SPO+}: A convex surrogate loss for predict-and-optimize problems \cite{elmachtoub2022smart}, which approximates the scheduling regret through a differentiable upper bound on the decision loss.
+\end{itemize}
+
+\paragraph{Evaluation metric.}
+As in the synthetic experiments, the evaluation objective for the real-world data is to minimize the \emph{Sum of Completion Times (SCT)} induced by the predicted task orderings. For each model, predicted durations were used to sequence appointments, and the resulting SCT was computed based on the true durations. To facilitate comparison across months and models, we report the \emph{relative SCT error}, defined as the difference between the predicted and optimal SCT values, normalized by the optimal SCT. This reflects the scheduling regret incurred by each model and aligns with the evaluation used in the synthetic setting.
+
+
+\subsection{Experimental procedure}
+
+The models were implemented as feedforward neural networks consisting of two hidden layers with ReLU activations and a Softplus output layer. For consistency across experiments, all models were trained using the Adam optimizer with a learning rate of \(5 \times 10^{-3}\) and weight decay of \(1 \times 10^{-4}\). Early stopping was applied based on convergence of the training loss to prevent overfitting.
+
+Each method was trained for up to 2000 iterations, with the relative Sum of Completion Times (SCT) error evaluated every 50 steps. The primary evaluation metric was the relative SCT error on the test set, computed by sequencing tasks using the model-predicted durations \(\hat{y}_i\) and comparing the resulting SCT to that of the optimal ordering under true durations \(y_i\).
+
+The SPO+ implementation utilized a mini-batch version of the surrogate loss, which incorporates a differentiable linear program to minimize cumulative completion time based on the predicted durations. This formulation enabled gradient-based optimization. All methods were evaluated using the same training--test splits and comparable model capacity to ensure a fair comparison.
+
+To assess robustness over time, we repeated this experiment using data from multiple months in the year 2021. %In this paper, we report detailed results for two representative months: January and November.
+
+
+\subsection{Results}
+
+To assess the robustness of each method across time, we evaluated model performance on monthly datasets spanning January to December 2021. Table~\ref{tab:monthly-sct} reports the final relative Sum of Completion Times (SCT) error per method (ours is denoted SIG for sigmoid-based) in each month. The bottom row presents the average SCT error across the year. Our sigmoid-based method consistently outperforms baselines (except August 2021), achieving the lowest average error and demonstrating stable performance across different months.
+
+\begin{table}[t]
+\centering
+\caption{Final relative SCT errors across months of 2021 for each method.
+Average values: SPO+= 0.476, LTR= 0.338, MSE= 0.353, and SIG= \textbf{0.316}}
+\label{tab:monthly-sct}
+\begin{tabular}{lcccccc}
+\toprule
+Method & Jan & Feb & Mar & Apr & May & Jun \\
+\midrule
+SPO+     & 0.48 & 0.56 & 0.53 & 0.53 & 0.52 & 0.42 \\
+LTR      & 0.33 & 0.36 & 0.33 & 0.35 & 0.33 & 0.33 \\
+MSE      & 0.35 & 0.38 & 0.36 & 0.35 & 0.34 & 0.34 \\
+Sigmoid  & \textbf{0.31} & \textbf{0.34} & \textbf{0.33} & \textbf{0.33} & \textbf{0.30} & \textbf{0.31} \\
+\midrule
+Method & Jul & Aug & Sep & Oct & Nov & Dec \\
+\midrule
+SPO+     & 0.48 & 0.38 & 0.40 & 0.49 & 0.42 & 0.50 \\
+LTR      & 0.33 & \textbf{0.28} & 0.34 & 0.32 & 0.37 & 0.38 \\
+MSE      & 0.33 & 0.31 & 0.34 & 0.36 & 0.37 & 0.41 \\
+SIG  & \textbf{0.30} & 0.29 & \textbf{0.31} & \textbf{0.29} & \textbf{0.33} & \textbf{0.35} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We now take a closer look at performance on January 2021 as a representative example. Figure~\ref{fig:real-data-jan} shows the relative SCT error over training iterations for each method on this dataset. The y-axis represents the SCT error relative to the optimal ordering, and the x-axis indicates the training steps.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.5\textwidth]{LossComparison_Jan.png}
+    \caption{Relative SCT error during training on the real-world Exam scheduling dataset for January 2021. The sigmoid-based regret loss consistently achieves lower SCT error compared to Rank Loss, MSE Loss, and SPO+.}
+    \label{fig:real-data-jan}
+\end{figure}
+
+The results demonstrate that the sigmoid-based regret surrogate (blue curve) consistently achieves the lowest SCT error, outperforming all baselines throughout training. Rank Loss (orange curve) performs competitively early on but plateaus at a higher error. MSE Loss (green curve) converges more slowly and ultimately underperforms, confirming that minimizing prediction error alone does not lead to better scheduling. SPO+ (red curve) converges but stabilizes at a higher SCT error, indicating sensitivity to model dynamics and optimization noise despite accounting for task ordering.
+
+
+
+% \paragraph{Monthly performance summary.}
+% To assess robustness across time, we extended the evaluation to each calendar month in 2021. Table~\ref{tab:monthly-sct} reports the final relative SCT error for each method on monthly datasets from January to December. The rightmost column summarizes the average SCT error across all months. The sigmoid-based loss achieved the lowest average error, indicating consistently strong performance throughout the year.
+
+
+
+%\subsection{Discussion}
+
+%These real-world experiments highlight the practical benefit of learning frameworks that directly target regret minimization rather than relying on proxy objectives such as MSE or indirect ranking surrogates. The proposed sigmoid-based loss achieved the best task ordering and downstream scheduling efficiency, indicating its robustness to clinical data heterogeneity and noise. The results also illustrate the challenges of deploying structured losses like SPO+ in practice without additional smoothing, and reinforce the utility of simple, smooth surrogates for real-world scheduling tasks.
+
+\section{Discussion}
+
+In this part, we discuss the key insights 
+from the theoretical analysis of our method and the two experimental sections, namely the ability of our approach
+to better redistribute prediction errors, the applicability of our method
+to polynomial scheduling problems,
+and understanding why our method works where SPO+ underdelivers. 
+
+\paragraph{Smart Redistribution of Errors.}
+A key insight from our experimental results is that the proposed surrogate-based loss function promotes a smart redistribution of prediction errors. Although traditional regression losses aim to minimize pointwise differences between predicted and true durations, our model instead focuses on improving the downstream scheduling objective, minimizing the sum of completion times (SCT).
+
+This means that the model learns to make predictions that, even if imperfect in terms of raw accuracy, lead to favorable task orderings. For example, overestimating one task while underestimating another might result in a better overall sequence from a scheduling perspective. This ability to shift prediction errors in a scheduling-aware manner contributes to the performance observed across months and datasets, despite noise and limited patient-specific features.
+
+% Such behavior demonstrates the strength of decision-aware learning frameworks: the goal is not to predict durations accurately in isolation, but to make predictions that enable effective decision-making.
+
+\paragraph{Applicability to Polytime Problems.}
+It is also important to note that our method performs particularly well in settings where the deterministic (no uncertainty) scheduling problem is solvable in polynomial time. In our case study, the problem can be optimally solved by simply sorting the tasks. This tractability enables us to leverage exact solutions during training (e.g., in SPO+ and surrogate construction), ensuring that model predictions are directly aligned with the true optimal sequence.
+
+In contrast, for scheduling problems that are NP-hard even under certainty (e.g., Job Shop Scheduling), surrogate-based learning would require approximations or heuristics to guide training. Thus, our approach is especially suited for applications where the deterministic version of the problem is efficiently solvable, enabling effective integration of learning and optimization. Having said that, as our experiments on real-world data show, we identified a healthcare scheduling problem where the deterministic version is tractable, confirming that our method is already practically applicable and effective in realistic and relevant scenarios.
+
+%\paragraph{Why SPO+ Struggles in Scheduling Tasks.}  
+
+%The \emph{SPO+} loss, introduced by Elmachtoub and Grigas (2017), is defined as:
+%\[
+%\ell_{\text{SPO+}}(\hat{c}, c) := \max_{w \in S} \left\{ c^\top w - 2 \hat{c}^\top w \right\} + 2 \hat{c}^\top w^*(c) - z^*(c),
+%\]
+%where \( \hat{c} \) is the predicted cost vector, \( c \) is the true cost vector, \( w^*(c) \) is the optimal solution under the true costs, and \( z^*(c) = c^\top w^*(c) \) is the corresponding optimal value. In scheduling problems where \( c \) represents job durations, the optimal solution corresponds to a specific task order. Small deviations in \( \hat{c} \) can shift the predicted optimal schedule \( w^*(\hat{c}) \), leading to discontinuities in the loss. As a result, SPO+ is highly sensitive to the quality of input features: when features are weak predictors of duration, predictions may oscillate between similarly good but differently ordered schedules, causing unstable or flat gradients and premature convergence.
+
+
+\paragraph{Comparison to state-of-the-art benchmark methods.}
+
+In our real-world scheduling experiments, SPO+ underperforms compared to our surrogate loss as well as to LTR. While SPO+ is an optimization-aware loss, we observe that its performance can be sensitive to the structure of scheduling problems. Specifically, in settings like SCT where small prediction shifts may lead to major changes in the optimal task ordering, training may become unstable or prone to early convergence. These effects are especially apparent when feature signals are weak. In contrast, our sigmoid-based regret surrogate maintains smooth training dynamics and consistently yields lower SCT error, suggesting stronger alignment with the scheduling objective in practice.
+
+The LTR method also operates on pairwise orderings and offers stable gradients regardless of the feature quality. However, unlike the sigmoid-based regret loss, it does not weight misorderings by their cost impact in the schedule,
+which explains its inferior performance in most experimental settings.
+
+%In contrast, the \emph{sigmoid-based regret loss} is designed to be smooth and robust in low-signal settings. For any job pair \(i, j\) where \(y_j > y_i\), the loss contributes:
+%\[
+%(j-i)(y_j - y_i)\,\sigma\left(\frac{\hat{f}(x_i) - \hat{f}(x_j)}{\lambda}\right),
+%\]
+%where \(\sigma(\cdot)\) is the sigmoid function. Rather than enforcing a globally correct order, it softly encourages local pairwise consistency, making it more tolerant to noise in the input features. This results in a smoother gradient landscape and more stable training, especially when predictions are far from optimal.
+
+
+
+
+% related work
+\section{Related work}\label{sec:related_work}
+
+Task scheduling, a key focus in AI and operations research, involves estimating task durations and using decision-making algorithms to schedule tasks. This paper explores data-driven approaches for scheduling under task uncertainty. 
+
+\paragraph{Smart predict-and-optimize.} Traditionally, machine learning is used to predict task durations, which are then used to solve scheduling problems (e.g.,~\cite{shahabikargar2014predicting}). However, traditional methods often overlook the impact of predictions on decision-making, as they use loss functions like MSE that do not consider the scheduling problem. 
+The SPO framework~\cite{elmachtoub2022smart} addresses this by using an SPO loss function that evaluates decision error. However, the non-convex and discontinuous nature of the SPO loss poses challenges, leading to the development of the surrogate SPO+ loss function. While effective, SPO assumes deterministic task parameters and struggles with non-linear scenarios. Several extensions of SPO have been proposed to deal with these limitations and with specific problems. SPO Trees (SPOTs)~\cite{elmachtoub2020decisiontrees} train decision trees under the SPO framework, providing interpretable models with reduced complexity. However, they may not generalize well to noisy, non-linear scheduling scenarios. Applied to large-scale problems like knapsack and energy-cost scheduling~\cite{Mandi2020}, SPO-relax uses relaxation-based oracles to reduce computational costs while maintaining decision quality. It assumes reliable oracles and focuses on linear objectives. UNIFY~\cite{Silvestri2024} integrates ML and constrained optimization for multi-stage decision-making under uncertainty. It supports robust decisions but relies on reinforcement learning and virtual parameters, requiring problem-specific configurations. Demirovic et al.~\cite{Demirovic2019} explored techniques for minimizing regret in the knapsack problem, highlighting the trade-offs between complexity and performance in combinatorial settings.
+
+\paragraph{Semi- and Domain-Specific SPO.}
+Semi-SPO approaches (e.g.,~\cite{Yang2023Semi,Yan2020Semi}) also use loss functions that are based on the outcome measurements from the optimization step. These outcome measurements are often chosen to work well in specific domains. Unlike SPO loss functions, semi-SPO loss functions are not derived from the regret measurement, and consequently cannot be proven to lead to an optimal solution.
+
+Other domain-specific SPO techniques have been proposed, e.g., for transport planning~\cite{tian2023}, factory planning~\cite{Wang2024Refinery}, and energy grid optimization~\cite{Alrasheedi2024Microgrid}. Like semi-SPO, these use domain-specific loss functions that do not guarantee convergence to the 
+true loss of the underlying problem. Our work also approximates domain specific loss, yet it provably converges 
+to the actual loss function.
+
+
+\paragraph{Learn to Rank.} 
+Our surrogate loss function uses the sigmoid function, common in Learn To Rank (LTR) methods like RankNet~\cite{burges2005learning}, ListWise~\cite{cao2007learning}, and BPR~\cite{rendle2009bpr}. Compared to these approaches, we introduce a loss function specifically designed to minimize the Sum of Completion Times (SCT) error, making it particularly suitable for scheduling tasks.
+
+%The work proposed in this paper contributes to the area of SPO techniques by proposing a loss function and a surrogate loss function specifically for task scheduling problems.
+
+% \section{Typeset section headers in sentence case}
+
+% You presumably are already familiar with the use of \LaTeX. But let 
+% us still have a quick look at how to typeset a simple equation: 
+% %
+% \begin{eqnarray}\label{eq:vcg}
+% p_i(\boldsymbol{\hat{v}}) & = &
+% \sum_{j \neq i} \hat{v}_j(f(\boldsymbol{\hat{v}}_{-i})) - 
+% \sum_{j \neq i} \hat{v}_j(f(\boldsymbol{\hat{v}})) 
+% \end{eqnarray}
+% %
+% Use the usual combination of \verb|\label{}| and \verb|\ref{}| to 
+% refer to numbered equations, such as Equation~(\ref{eq:vcg}). 
+% Next, a theorem: 
+
+% \begin{theorem}[Fermat, 1637]\label{thm:fermat}
+% No triple $(a,b,c)$ of natural numbers satisfies the equation 
+% $a^n + b^n = c^n$ for any natural number $n > 2$.
+% \end{theorem}
+
+% \begin{proof}
+% A full proof can be found in the supplementary material.
+% \end{proof}
+
+% Table captions should be centred \emph{above} the table, while figure 
+% captions should be centred \emph{below} the figure.\footnote{Footnotes
+% should be placed \emph{after} punctuation marks (such as full stops).}
+ 
+% \begin{table}[h]
+% \caption{Locations of selected conference editions.}
+% \centering
+% \begin{tabular}{ll@{\hspace{8mm}}ll} 
+% \toprule
+% AISB-1980 & Amsterdam & ECAI-1990 & Stockholm \\
+% ECAI-2000 & Berlin & ECAI-2010 & Lisbon \\
+% ECAI-2020 & \multicolumn{3}{l}{Santiago de Compostela (online)} \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion} \label{sec:conclusion}
+This paper introduced a novel data-driven approach to task scheduling under uncertainty. Building on the smart predict-and-Optimize (SPO) framework, we proposed a regret function tailored to scheduling problems and addressed its non-differentiability by introducing a sigmoid-based surrogate loss function inspired by learn-to-rank (LTR) methods. We formally proved that the surrogate loss closely approximates the regret function while maintaining key properties necessary for producing near-optimal solutions. 
+
+Empirical evaluations on synthetic datasets demonstrated that our method significantly outperforms existing Predict then Optimize, SPO+, and Rank Loss approaches, achieving an average improvement of approximately \(140\%\) in performance. Robustness analysis underscored the potential applicability of our approach to real-world scheduling scenarios, confirming its scalability and effectiveness in realistic uncertain and data rich environments.
+
+Future work will extend our approach to more complex scheduling scenarios, such as multi-machine and interval scheduling, and investigate ways to reduce computational overhead and training times. Additionally, exploring real-world datasets and integrating external factors like dynamic resource constraints will help assess the practical applicability of our method. For problems where the deterministic scheduling step is not solvable in polynomial time—such as Job Shop Scheduling—simple surrogate replacement is insufficient; future work must also account for structural constraints and optimization complexity, potentially requiring novel, problem-specific surrogate designs or hybrid learning-optimization frameworks.
+
+
+
+%%% Use this command to include your bibliography file.
+
+\bibliography{mybibfile}
+
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
