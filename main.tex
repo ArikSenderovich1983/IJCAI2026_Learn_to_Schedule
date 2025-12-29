@@ -114,38 +114,37 @@ Our contributions can be summarized as follows:
 \section{A General Framework for Surrogate-Based Predict-and-Optimize}
 \label{sec:framework}
 
-The surrogate methodology proposed in this paper extends beyond single-machine
-scheduling and applies to a broad class of decision problems in which the
-deterministic variant is polynomial-time solvable.
-In this section, we outline a
-general framework for integrating prediction and optimization through
-surrogate losses derived from deterministic optimal policies.
-This framework
-formalizes the key steps required to construct differentiable learning
-objectives that approximate discrete decision rules.
+This section makes the paper's core premise explicit: many classical
+\emph{polynomial-time scheduling rules} can be expressed as collections of
+\emph{critical decisions} (comparisons, threshold tests, and group assignments)
+that fully determine the resulting schedule.
+We use this view to derive smooth, decision-level surrogate losses for
+smart predict-and-schedule.
+While the same idea can sometimes be transferred to other decision problems, we
+do not claim universal applicability beyond settings where such a decomposition
+is available and meaningful.
 
 \subsection{Problem Setting}
 
-Let $\mathcal{I}$ denote an instance of a decision problem, consisting of $n$
-items (e.g., tasks or jobs), each described by a feature vector $x_i \in
-\mathbb{R}^p$.
-The decision problem depends on unknown parameters
-$\theta^\star_i \in \Theta$, which must be inferred from historical data.
-Examples of parameters include processing times, release dates, delays, or
-transition costs.
-A feasible decision is represented by $\pi \in \Pi$, where
-$\Pi$ denotes the set of allowable schedules or action plans.
-The true objective
-value of $\pi$ under parameters $\theta^\star = (\theta^\star_1,\dots,
-\theta^\star_n)$ is denoted by
+We consider a scheduling instance with $n$ jobs.
+Each job $i$ has observed features $x_i \in \mathbb{R}^p$ and an unknown
+parameter vector $\theta_i^\star$ (e.g., processing time, due date, or release
+time).
+Let $\theta^\star := (\theta_1^\star,\dots,\theta_n^\star)$ denote the
+collection of true parameters.
+A schedule (or sequencing decision) is denoted by $\pi \in \Pi$, where $\Pi$
+is the set of feasible schedules for the environment under study.
+The resulting objective value under the true parameters is
 \[
-C(\pi; \theta^\star).
+C(\pi;\theta^\star),
 \]
+where $C$ may represent, for example, sum of completion times, makespan, or a
+waiting-time objective.
 
-The learning task is to construct a predictor $\hat{\theta}=f_\omega(x)$, with
-parameters $\omega$, that yields a high-quality decision
-$\pi(\hat{\theta})$ obtained by solving the deterministic problem under
-predicted parameters.
+The learning task is to construct a predictor
+$\hat{\theta}=f_\omega(x)$ (with parameters $\omega$) and then apply a
+deterministic scheduling rule to $\hat{\theta}$ to obtain a schedule
+$\pi(\hat{\theta})$.
 The regret of using $\pi(\hat{\theta})$ instead of the
 optimal solution is
 \begin{equation}
@@ -205,38 +204,43 @@ $L_{\mathrm{surr}}$ that approximates the regret in
 The construction follows three principles:
 
 \paragraph{(a) Structural decomposition.}
-Let $\mathcal{A}$ determine decisions through a sequence of local comparisons,
-such as:
-\[
-\theta_i \prec \theta_j \quad\text{or}\quad \theta_i \in G_k.
-\]
-Identify all relevant comparisons, partitions, or rankings.
+Let $\mathcal{A}$ determine a schedule through a finite set of \emph{critical
+decisions} $\mathcal{D}$, such as:
+(i) pairwise precedence comparisons (e.g., SPT/EDD/FIFO-style ordering
+decisions), (ii) threshold tests, or (iii) group assignments (e.g., Johnson's
+partition into $G_1$ and $G_2$).
+Crucially, the elements of $\mathcal{D}$ need not be job pairs: in some rules
+they are per-job classification decisions, and in others they are comparisons.
 
 \paragraph{(b) Sigmoid relaxations.}
-Each discrete comparison $g(\theta_i,\theta_j)$ is replaced by a smooth sigmoid
-approximation:
+For each critical decision $d \in \mathcal{D}$, define a signed \emph{decision
+score} $s_d(\omega;x)$ produced by the predictor, such that the sign of
+$s_d$ encodes the model's preferred outcome for $d$ (e.g., ``$i$ before $j$''
+or ``job $i \in G_1$'').
+We then replace the hard, non-differentiable decision indicator by a smooth
+sigmoid approximation
 \[
-\sigma\!\left( \frac{h_\omega(x_i,x_j)}{\lambda} \right),
+\sigma\!\left( \frac{s_d(\omega;x)}{\lambda} \right),
 \]
-where $h_\omega$ is a learned score difference and $\lambda>0$ controls the
-sharpness of the relaxation.
+where $\lambda>0$ controls sharpness around the decision boundary $s_d=0$.
 
 \paragraph{(c) Weighted aggregation.}
-The surrogate loss is assembled as a weighted sum over all structural decisions:
+The surrogate loss is assembled as a weighted sum over critical decisions:
 \begin{equation}
 \label{eq:general-surrogate}
 L_{\mathrm{surr}}(\omega)
 :=
-\sum_{(i,j) \in \mathcal{C}}
-w_{i,j}\,
+\sum_{d \in \mathcal{D}}
+w_d(\theta^\star)\,
 \sigma\!\left(
-\frac{h_\omega(x_i,x_j)}{\lambda}
+\frac{s_d(\omega;x)}{\lambda}
 \right),
 \end{equation}
-where $\mathcal{C}$ is the set of critical comparisons defined by
-$\mathcal{A}$, and $w_{i,j}$ reflects their contribution to the regret.
-As $\lambda \to 0$, the surrogate approaches the discrete structure of
-$\mathcal{A}$, while for $\lambda>0$ the function remains smooth.
+where $w_d(\theta^\star)\ge 0$ measures the impact of deciding $d$ incorrectly
+on the scheduling objective (e.g., SCT increase or makespan increase).
+As $\lambda \to 0$, the surrogate approaches a hard penalty on incorrect
+decisions, while for $\lambda>0$ it remains smooth and trainable with gradient
+descent.
 
 \subsection{Step 4: Train the Prediction Model}
 
@@ -263,18 +267,69 @@ under uncertainty that can be solved using our framework.
 \subsection{Implications for Scheduling Problems}
 \label{sec:framework-scheduling}
 
-Scheduling problems are a natural fit for the proposed framework.
-When task durations or other parameters are known, many classical scheduling problems admit simple optimal policies based on sorting or partitioning rules.
-For example, minimizing SCT on a single machine is solved by sorting jobs in non-decreasing order of processing times, while the two-machine flow shop with makespan minimization can be solved optimally via Johnson's rule.
+Scheduling problems are a natural fit for the proposed framework because many
+deterministic scheduling objectives admit polynomial-time optimal rules with
+explicit structure.
+In such cases, the set $\mathcal{D}$ of critical decisions is not an
+abstraction: it corresponds to the comparisons and assignments performed by the
+rule itself.
+Importantly, $\mathcal{D}$ is \emph{problem- and rule-dependent} and does not
+have to be a set of job pairs.
 
-Under uncertainty, task parameters must be predicted from features.
-Naively learning to minimize mean squared error (MSE) on durations ignores the downstream scheduling objective and treats all prediction errors equally, even though only errors that alter the induced schedule affect SCT or makespan.
-Our framework instead constructs surrogate losses that mirror the structure of the deterministic optimal policy: pairwise comparisons in single-machine scheduling and group assignments plus within-group orderings in the flow shop.
-These surrogates weight prediction errors by their impact on the objective, yielding learning algorithms that are explicitly aligned with scheduling regret.
+\paragraph{Examples of critical-decision sets.}
+\begin{itemize}
+    \item \textbf{SPT for $1\|\sum C_j$:}
+    $\mathcal{D}$ can be taken as pairwise precedence decisions
+    $d=(i,j)$ encoding ``$i$ should precede $j$'', induced by comparisons
+    of processing times.
+    \item \textbf{EDD for due-date objectives:}
+    $\mathcal{D}$ can similarly be precedence decisions based on due dates.
+    \item \textbf{FIFO in single-server queues:}
+    $\mathcal{D}$ encodes precedence decisions induced by arrival-time order.
+    \item \textbf{Johnson's rule for $F2\|C_{\max}$:}
+    $\mathcal{D}$ naturally decomposes into (i) per-job group-assignment
+    decisions (whether job $i$ belongs to $G_1$ or $G_2$) and
+    (ii) within-group ordering decisions.
+    The former are \emph{not} pairwise comparisons.
+\end{itemize}
 
-In the remainder of the paper, we instantiate this framework on two canonical problems:
-single-machine SCT minimization (Problem~1) and two-machine flow shop makespan minimization (Problem~2).
-For each, we define the underlying scheduling problem under uncertainty, derive a sigmoid-based surrogate loss tailored to its deterministic optimal policy, and empirically evaluate the resulting learning algorithms.
+\paragraph{Why decision-level weights matter.}
+Weights $w_d(\theta^\star)$ are essential: they determine which mistakes the
+learning algorithm prioritizes.
+For SCT, swapping two jobs far apart in the sequence can have much larger
+impact than swapping two adjacent jobs; for Johnson's rule, misclassifying a
+job close to the boundary $p_{i1}=p_{i2}$ may be less harmful than
+misclassifying a job with a large margin, and some within-group misorderings
+increase makespan substantially more than others.
+
+\subsection{Running Example: Outpatient Scheduling}
+\label{sec:framework-running-example}
+
+Consider a stylized outpatient clinic with a single exam doctor.
+Patients $i=1,\dots,n$ arrive with known appointment/arrival times $a_i$ and
+uncertain exam durations.
+Depending on the operational objective, a deterministic policy might implement
+FIFO (serve in order of $a_i$), an EDD-like rule (serve those with earlier due
+times first), or an SPT-like rule (serve those with shorter predicted exams
+first) as a proxy for minimizing waiting or completion-time objectives.
+
+In this setting, a critical decision could be a precedence relation (``serve
+patient $i$ before patient $j$''), but it could also be a per-patient
+classification decision (``patient $i$ belongs to the short-visit group''),
+depending on the scheduling rule used.
+The surrogate~\eqref{eq:general-surrogate} penalizes incorrect or ambiguous
+decisions through $\sigma(s_d/\lambda)$ and uses $w_d(\theta^\star)$ to reflect
+their downstream impact (e.g., increase in total waiting time or SCT).
+This connects directly to the hospital case study in
+Section~\ref{sec:case_study}, where our learning objective is designed to
+improve the resulting patient sequencing rather than pointwise duration
+accuracy.
+
+In the remainder of the paper, we instantiate the framework on two canonical
+problems: single-machine SCT minimization (Problem~1) and two-machine flow shop
+makespan minimization (Problem~2).
+For each, we derive a problem-specific surrogate by specifying (i) the set of
+critical decisions $\mathcal{D}$ and (ii) the weights $w_d$.
 
 \section{Problem 1: Single-Machine Sum of Completion Times}
 \label{sec:problem1}
@@ -552,7 +607,7 @@ L_{\mathrm{group}}
 := 
 \sum_{i} 
 w_i \,
-\sigma\!\left( \frac{\hat{d}_i\, d_i}{\lambda} \right),
+\sigma\!\left( -\frac{\hat{d}_i\, d_i}{\lambda} \right),
 \label{eq:group-loss}
 \end{equation}
 where $\sigma$ is the sigmoid function, $\lambda>0$ controls smoothness, and
@@ -596,7 +651,7 @@ L_{\mathrm{order}}
 \Delta_{i,j}\, \sigma\!\Big( \tfrac{\hat{s}_i - \hat{s}_j}{\lambda} \Big)
  +
 \sum_{\substack{i,j \in G_2 \\ p_{i2} > p_{j2}}}
-\Delta_{i,j}\, \sigma\!\Big( \tfrac{\hat{s}_i - \hat{s}_j}{\lambda} \Big)
+\Delta_{i,j}\, \sigma\!\Big( \tfrac{\hat{s}_j - \hat{s}_i}{\lambda} \Big)
 $}\,.
 \end{equation}
 As in the SCT surrogate, the sigmoid penalizes misordered pairs (i.e., cases where
