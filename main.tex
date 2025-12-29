@@ -46,7 +46,7 @@
   {\par}
 
 % Title and authors (placeholders to be updated)
-\title{Surrogate-Based Smart Predict-and-Schedule}
+\title{Surrogate-Based Smart Predict-and-Schedule for Single-Machine and Flow Shop Problems}
 
 \author{
   First Author$^1$\and
@@ -67,48 +67,48 @@
 \maketitle
 
 \begin{abstract}
-Task scheduling is a fundamental challenge in artificial intelligence and operations research, with applications in manufacturing, logistics, cloud computing, and healthcare.
-In settings with uncertainty and historical data, smart predict-and-optimize (SPO) methods offer a promising data-driven approach by minimizing empirical regret---the gap between the learned and optimal solutions on training data.
-However, applying SPO to even simple decision problems is often hindered by the non-differentiability of common objective functions and by the discrete nature of optimal policies.
-We address these limitations by proposing a surrogate-based framework that constructs smooth learning objectives from deterministic, polynomial-time decision rules, and by instantiating this framework on two classical scheduling problems.
-Our main instantiation introduces a sigmoid-based surrogate loss that approximates the regret in minimizing the sum of completion times on a single machine, while a second instantiation targets the two-machine flow shop scheduling problem via a surrogate aligned with Johnson's rule.
-Experiments on synthetic benchmarks and a real-world healthcare scheduling dataset show that our approach consistently outperforms state-of-the-art SPO and learn-to-rank methods across the vast majority of problem instances.
+Task scheduling under uncertainty is a fundamental challenge in artificial intelligence and operations research, with applications in manufacturing, logistics, cloud computing, and healthcare.
+Smart predict-and-optimize (SPO) methods address this challenge by learning predictive models that directly minimize decision regret, but in practice they struggle with non-differentiable objectives and the discrete nature of optimal scheduling rules.
+We propose a surrogate-based framework for smart predict-and-schedule that views polynomial-time scheduling algorithms---such as shortest-processing-time (SPT), earliest-due-date (EDD), FIFO, and Johnson's rule---as collections of critical decisions, and attaches to each decision a smooth sigmoid-based penalty weighted by its contribution to the scheduling objective.
+We instantiate this framework on two classical problems: (i) single-machine scheduling with the sum of completion times (SCT) objective, where misordered job pairs are weighted by their SCT increase, and (ii) the two-machine flow shop with makespan minimization, where misclassified groups and misordered jobs are weighted by the corresponding Johnson swap costs.
+Experiments on synthetic SCT benchmarks and a real-world outpatient scheduling dataset from a cancer hospital show that our surrogate-based approach consistently outperforms state-of-the-art SPO and learn-to-rank baselines across the vast majority of instances.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
 
-Scheduling involves allocating limited resources to tasks over time to optimize objectives such as minimizing the sum of completion times (SCT) or maximizing throughput~\cite{baker2018principles,pinedo2022scheduling}.
+Scheduling involves allocating limited resources to tasks over time to optimize objectives such as minimizing the sum of completion times (SCT), makespan, or weighted tardiness~\cite{baker2018principles,pinedo2022scheduling}.
 It is a foundational problem in artificial intelligence and operations research, with applications in manufacturing, logistics, cloud computing, and healthcare.
-Classical approaches typically assume that task parameters (e.g., processing times) are known and deterministic, enabling the use of efficient algorithms and priority rules.
+Classical approaches typically assume that task parameters (e.g., processing times, release dates, due dates) are known and deterministic, enabling the use of efficient algorithms and priority rules such as SPT, EDD, FIFO, or Johnson's rule.
 In reality, however, these parameters are uncertain and must be inferred from historical data.
-This mismatch between deterministic models and stochastic environments motivates the development of data-driven decision-making methods that explicitly account for uncertainty.
+This mismatch between deterministic models and stochastic environments motivates the development of data-driven decision-making methods that explicitly account for uncertainty in both prediction and optimization.
 
 Smart predict-and-optimize (SPO) methods offer one such paradigm~\cite{elmachtoub2022smart}.
 Rather than learning to predict task parameters in isolation, SPO couples prediction with downstream optimization by minimizing empirical \emph{decision regret}: the difference between the objective value of the decision induced by learned predictions and that of the optimal decision under the true parameters.
 Despite their conceptual appeal, SPO methods face two major challenges in practice.
 First, the regret objective is often non-differentiable and highly non-convex, making gradient-based learning difficult.
-Second, even when differentiable surrogates such as SPO+ are available, they may be poorly aligned with the structure of specific combinatorial problems and can exhibit unstable training behaviour.
+Second, even when differentiable surrogates such as SPO+ are available, they may be poorly aligned with the structure of specific scheduling rules and can exhibit unstable training behaviour, especially when small changes in predictions lead to large changes in the optimal schedule.
 
-In this paper, we develop a surrogate-based framework that addresses these challenges for a broad class of decision problems whose deterministic variants are solvable in polynomial time.
-The key idea is to exploit the structure of known optimal algorithms---for example, sorting rules in scheduling or Johnson's rule in flow shops---to construct smooth surrogate losses that approximate regret.
-These surrogates are built from local comparisons (e.g., pairwise orderings or group assignments) that mirror the operations of the underlying algorithm, and are relaxed via sigmoidal functions to enable end-to-end gradient-based training.
+In this paper, we develop a surrogate-based framework that addresses these challenges for a broad class of polynomial-time scheduling algorithms.
+The key idea is to exploit the structure of known optimal dispatching rules---such as SPT, EDD, FIFO, and Johnson's rule---and view them as finite sets of \emph{critical decisions} (e.g., pairwise orderings or group assignments) that fully determine the resulting schedule.
+For each decision, we construct a smooth sigmoid-based penalty whose argument is a signed decision score and whose weight reflects the local impact of that decision on the scheduling objective (e.g., SCT increase or makespan increase).
+This yields a differentiable ``ReLU-over-decision'' surrogate that penalizes costly misdecisions while remaining largely neutral on confidently correct ones, providing stable gradients that focus on ambiguous or high-impact decisions.
 
-We then specialize this general framework to scheduling under uncertainty.
+We then specialize this decision-level framework to scheduling under uncertainty.
 Our primary case study is the single-machine SCT minimization problem, where we introduce a sigmoid-based surrogate that directly approximates regret by weighting misordered task pairs by their contribution to SCT.
-We further show how the same principles extend to a two-machine flow shop with makespan minimization, where the deterministic optimal policy is given by Johnson's rule.
+We further show how the same principles extend to a two-machine flow shop with makespan minimization, where the deterministic optimal policy is given by Johnson's rule and the surrogate weights misgroupings and misorderings by the corresponding Johnson swap costs.
 Across both problems, the resulting surrogates retain the interpretability of classical algorithms while enabling flexible learning with neural networks.
 
 To validate our approach, we conduct extensive experiments on synthetic and real-world datasets.
-On synthetic instances of the SCT problem, our surrogate consistently outperforms SPO+ and logistic rank-loss baselines, especially under high noise and large duration variability.
+On synthetic instances of the SCT problem, our surrogate consistently outperforms SPO+, logistic rank-loss, and mean-squared-error baselines, especially under high noise and large duration variability.
 On a large-scale outpatient scheduling dataset from a cancer hospital, our method achieves the lowest relative SCT error across most months, demonstrating robustness in a noisy, feature-limited environment.
 
 Our contributions can be summarized as follows:
 \begin{enumerate}
-    \item We propose a general surrogate-based framework for predict-and-optimize, applicable to decision problems whose deterministic variants admit polynomial-time optimal algorithms.
-    \item We instantiate this framework on two classical scheduling problems: (i) single-machine SCT minimization and (ii) two-machine flow shop makespan minimization, deriving problem-specific sigmoid-based surrogates.
-    \item We provide theoretical guarantees, including differentiability and convergence of the surrogate to regret in the SCT problem, and show how algorithmic structure (e.g., Johnson's rule) guides surrogate design in the flow shop setting.
-    \item We empirically evaluate our approach on synthetic and real-world scheduling datasets, demonstrating consistent improvements over state-of-the-art SPO and learn-to-rank methods.
+    \item We propose a surrogate-based framework for smart predict-and-schedule that views polynomial-time scheduling rules (e.g., SPT, EDD, FIFO, Johnson's rule) as sets of critical decisions and derives differentiable sigmoid-based losses at the decision level.
+    \item We instantiate this framework on two classical scheduling problems: (i) single-machine SCT minimization and (ii) two-machine flow shop makespan minimization, deriving problem-specific surrogates that weight each decision by its contribution to SCT or makespan.
+    \item We provide theoretical guarantees for the SCT surrogate, including differentiability and convergence to regret as the sigmoid sharpness parameter tends to zero, and show how algorithmic structure (e.g., Johnson's rule and associated swap costs) guides surrogate design in the flow shop setting.
+    \item We empirically evaluate our approach on synthetic SCT benchmarks and a real-world hospital scheduling dataset, demonstrating consistent improvements over state-of-the-art SPO, learn-to-rank, and predict-then-optimize baselines.
 \end{enumerate}
 
 \section{A General Framework for Surrogate-Based Predict-and-Optimize}
@@ -571,62 +571,58 @@ For two jobs $i,j$:
     \item If $i,j \in G_1$ and $p_{i1} < p_{j1}$, then $i$ should precede $j$.
     \item If $i,j \in G_2$ and $p_{i2} > p_{j2}$, then $i$ should precede $j$.
 \end{itemize}
-We define the pairwise surrogate loss
+To align the surrogate with makespan regret, we weight each potential swap by
+its impact on completion time.
+For two jobs $i$ and $j$ on machines $1$ and $2$, let
 \begin{equation}
+T_{i,j} = p_{i1} + \max(p_{i2},p_{j1}) + p_{j2},
+\end{equation}
+\begin{equation}
+T_{j,i} = p_{j1} + \max(p_{j2},p_{i1}) + p_{i2},
+\end{equation}
+and define the incremental cost of placing $j$ before $i$ instead of the
+correct order as
+\begin{equation}
+\Delta_{i,j} = T_{j,i} - T_{i,j}.
+\end{equation}
+We then set the within-group surrogate to
+\begin{equation}
+\label{eq:order-loss}
+\resizebox{0.95\linewidth}{!}{$
+\displaystyle
 L_{\mathrm{order}}
 :=
 \sum_{\substack{i,j \in G_1 \\ p_{i1} < p_{j1}}}
-\sigma\!\left( \frac{\hat{s}_i - \hat{s}_j}{\lambda} \right)
-+\!
+\Delta_{i,j}\, \sigma\!\Big( \tfrac{\hat{s}_i - \hat{s}_j}{\lambda} \Big)
+ +
 \sum_{\substack{i,j \in G_2 \\ p_{i2} > p_{j2}}}
-\sigma\!\left( \frac{\hat{s}_i - \hat{s}_j}{\lambda} \right).
-\label{eq:order-loss}
+\Delta_{i,j}\, \sigma\!\Big( \tfrac{\hat{s}_i - \hat{s}_j}{\lambda} \Big)
+$}\,.
 \end{equation}
 As in the SCT surrogate, the sigmoid penalizes misordered pairs (i.e., cases where
 $\hat{s}_i > \hat{s}_j$ despite $i$ being correctly ordered before $j$), with 
-penalties diminishing smoothly when the ordering margin increases.
+penalties scaled by the corresponding increase in makespan $\Delta_{i,j}$.
 
-\paragraph{Combined surrogate.}
-The full surrogate loss for Johnson’s rule is a weighted combination of the two components:
+\paragraph{Combined surrogate and properties.}
+The full surrogate loss for Johnson’s rule is the simple additive combination
+of group and ordering components:
 \begin{equation}
+\label{eq:johnson-loss}
 L_{\mathrm{Johnson}}
 :=
 L_{\mathrm{group}}
-+ 
-\alpha \, L_{\mathrm{order}},
-\label{eq:johnson-loss}
-\end{equation}
-where $\alpha>0$ balances between correct group classification and correct
-within-group ordering.
-As with the SCT surrogate, letting $\lambda \to 0$
-recovers the discrete decision structure of the underlying scheduling problem.
-The resulting objective is smooth, differentiable, and directly aligned with the
-structural requirements of the optimal $F2\|C_{\max}$ scheduling policy.
-
-\btext{
-For two jobs $i,j$, the cost of the swap is given by:
-
-\begin{equation}
-T_{i,j} = p_{1,i} + max(p_{2,i},p_{1,j}) + p_{2,j} 
-\end{equation}
-\begin{equation}
-    T_{j,i} = p_{1,j} + max(p_{2,j},p_{1,i}) + p_{2,i}
-\end{equation}
-\begin{equation}
-    \Delta = T_{j,i} - T_{i,j}
-\end{equation}
-
-\resizebox{0.95\linewidth}{!}{
-$\displaystyle
-L_{\mathrm{order}}
-:=
-\sum_{\substack{i,j \in G_1 \\ p_{i1} < p_{j1}}}
-\Delta\, \sigma\Big( \frac{(\hat{f}(p_{i1}) - \hat{f}(p_{j1}))}{\lambda} \Big)
 +
-\sum_{\substack{i,j \in G_2 \\ p_{i2} > p_{j2}}}
-\Delta\, \sigma\Big( \frac{(\hat{f}(p_{i2}) - \hat{f}(p_{j2}))}{\lambda} \Big)
-$}
-}
+L_{\mathrm{order}}.
+\end{equation}
+By construction, $L_{\mathrm{Johnson}}$ is infinitely differentiable in the
+network parameters, and jobs whose misclassification or misordering has a
+larger impact on the makespan (larger $|d_i|$ or $\Delta_{i,j}$) receive
+larger weights.
+As $\lambda \to 0$, the sigmoids in~\eqref{eq:group-loss} and
+~\eqref{eq:order-loss} approach hard indicators of incorrect group assignment
+and within-group ordering, so that $L_{\mathrm{Johnson}}$ converges to a
+piecewise-constant approximation of the true makespan regret induced by
+Johnson's rule.
 
 
 \section{Evaluation}
