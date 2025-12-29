@@ -21,6 +21,9 @@
 \usepackage{color}
 \usepackage[switch]{lineno}
 
+\usepackage{xcolor}
+\newcommand\btext[1]{{\color{blue}{#1}}}
+
 \linenumbers
 \urlstyle{same}
 
@@ -600,7 +603,33 @@ recovers the discrete decision structure of the underlying scheduling problem.
 The resulting objective is smooth, differentiable, and directly aligned with the
 structural requirements of the optimal $F2\|C_{\max}$ scheduling policy.
 
-\section{Experiments: Single-Machine SCT}
+\btext{
+For two jobs $i,j$, the cost of the swap is given by:
+
+\begin{equation}
+T_{i,j} = p_{1,i} + max(p_{2,i},p_{1,j}) + p_{2,j} 
+\end{equation}
+\begin{equation}
+    T_{j,i} = p_{1,j} + max(p_{2,j},p_{1,i}) + p_{2,i}
+\end{equation}
+\begin{equation}
+    \Delta = T_{j,i} - T_{i,j}
+\end{equation}
+
+\resizebox{0.95\linewidth}{!}{
+$\displaystyle
+L_{\mathrm{order}}
+:=
+\sum_{\substack{i,j \in G_1 \\ p_{i1} < p_{j1}}}
+\Delta\, \sigma\Big( \frac{(\hat{f}(p_{i1}) - \hat{f}(p_{j1}))}{\lambda} \Big)
++
+\sum_{\substack{i,j \in G_2 \\ p_{i2} > p_{j2}}}
+\Delta\, \sigma\Big( \frac{(\hat{f}(p_{i2}) - \hat{f}(p_{j2}))}{\lambda} \Big)
+$}
+}
+
+
+\section{Evaluation}
 \label{sec:evaluation}
 
 This section details the empirical evaluation of the proposed approach on the single-machine SCT problem (Problem~1).
