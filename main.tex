@@ -18,6 +18,8 @@
 \usepackage{amsthm}
 \usepackage{booktabs}
 \usepackage{paralist}
+\usepackage{todonotes}
+\usepackage{comment}
 \usepackage{color}
 \usepackage[switch]{lineno}
 
@@ -122,7 +124,7 @@ We use this view to derive smooth, decision-level surrogate losses for
 smart predict-and-schedule.
 While the same idea can sometimes be transferred to other decision problems, we
 do not claim universal applicability beyond settings where such a decomposition
-is available and meaningful.
+is available.
 
 \subsection{Problem Setting}
 
@@ -131,22 +133,16 @@ Each job $i$ has observed features $x_i \in \mathbb{R}^p$ and an unknown
 parameter vector $\theta_i^\star$ (e.g., processing time, due date, or release
 time).
 Let $\theta^\star := (\theta_1^\star,\dots,\theta_n^\star)$ denote the
-collection of true parameters.
+collection of true job parameters.
 A schedule (or sequencing decision) is denoted by $\pi \in \Pi$, where $\Pi$
 is the set of feasible schedules for the environment under study.
-The resulting objective value under the true parameters is
-\[
-C(\pi;\theta^\star),
-\]
-where $C$ may represent, for example, sum of completion times, makespan, or a
-waiting-time objective.
+The resulting objective value under the true parameters is $C(\pi;\theta^\star)$,
+where $C$ may represent, for example, sum of completion times or makespan.
 
-The learning task is to construct a predictor
-$\hat{\theta}=f_\omega(x)$ (with parameters $\omega$) and then apply a
-deterministic scheduling rule to $\hat{\theta}$ to obtain a schedule
-$\pi(\hat{\theta})$.
-The regret of using $\pi(\hat{\theta})$ instead of the
-optimal solution is
+The learning task is to learn
+$\hat{\theta} = f_\omega(x)$ (with parameters $\omega$) by minimizing
+the regret of using $\pi(\hat{\theta})$ instead of the
+optimal solution, namely
 \begin{equation}
 \label{eq:regret-general}
 R(\hat{\theta},\theta^\star)
@@ -159,9 +155,7 @@ which is generally non-differentiable with respect to~$\omega$.
 The framework 
 below addresses this challenge by exploiting problem structure.
 
-\subsection{Step 1: Identify Unknown Parameters}
-
-For each job $i$, define the unknown parameter vector $\theta_i^\star$ governing
+\noindent\textbf{Step 1: Identify Unknown Parameters.} For each job $i$, define the unknown parameter vector $\theta_i^\star$ governing
 its contribution to the optimization problem.
 For scheduling, these may be
 processing times or resource requirements.
@@ -169,33 +163,19 @@ Let a dataset
 $\mathcal{D}=\{(x_i,\theta_i^\star)\}_{i=1}^N$ be given, consisting of past
 observations from which a predictor $f_\omega$ can be trained.
 
-\subsection{Step 2: Identify a Deterministic Polynomial-Time Counterpart}
-
-Many optimization problems become tractable when $\theta^\star$ is known.
+\noindent\textbf{Step 2: Identify a Deterministic Polynomial-Time Counterpart.} Many optimization problems become tractable when $\theta^\star$ is known.
 Suppose that, for known parameters $\theta$, the deterministic variant admits a
 polynomial-time algorithm $\mathcal{A}$ that returns an optimal decision:
 \[
 \pi(\theta) = \mathcal{A}(\theta).
 \]
-Examples include:
-\begin{itemize}
-    \item single-machine scheduling problems where sorting rules are optimal,
-    \item two-machine flow shops solved by Johnson’s rule,
-    \item shortest-path problems solvable via Dijkstra’s algorithm,
-    \item bipartite matchings solved via the Hungarian algorithm.
-\end{itemize}
-
-Such algorithms typically reveal a structural decomposition:
-\[
-\mathcal{A}(\theta)
-\;\text{induces}\;
-\text{(i) partitions, (ii) rankings, or (iii) threshold decisions}.
-\]
+Examples include single-machine scheduling problems where sorting rules are optimal, and
+two-machine flow shops solved by Johnson’s rule, two problems which we tackle in this paper.
+Such algorithms typically reveal a structural decomposition
+$\mathcal{A}(\theta)$ that induces partitions, rankings, or threshold decisions.
 This structure is key for constructing differentiable surrogates.
 
-\subsection{Step 3: Derive a Smooth Surrogate from $\mathcal{A}$}
-
-The deterministic algorithm $\mathcal{A}$ induces a discrete mapping from
+\noindent\textbf{Step 3: Derive a Smooth Surrogate from $\mathcal{A}$.} The deterministic algorithm $\mathcal{A}$ induces a discrete mapping from
 parameters~$\theta$ to decisions~$\pi$.
 To train a neural network via gradient
 descent, we replace this mapping with a differentiable surrogate loss
@@ -231,20 +211,18 @@ The surrogate loss is assembled as a weighted sum over critical decisions:
 L_{\mathrm{surr}}(\omega)
 :=
 \sum_{d \in \mathcal{D}}
-w_d(\theta^\star)\,
+\phi_d(\theta^\star)\,
 \sigma\!\left(
 \frac{s_d(\omega;x)}{\lambda}
 \right),
 \end{equation}
-where $w_d(\theta^\star)\ge 0$ measures the impact of deciding $d$ incorrectly
+where $\phi_d(\theta^\star)\ge 0$ measures the impact of deciding $d$ incorrectly
 on the scheduling objective (e.g., SCT increase or makespan increase).
 As $\lambda \to 0$, the surrogate approaches a hard penalty on incorrect
 decisions, while for $\lambda>0$ it remains smooth and trainable with gradient
 descent.
 
-\subsection{Step 4: Train the Prediction Model}
-
-The neural network $f_\omega$ is trained by minimizing the surrogate loss:
+\noindent\textbf{Step 4: Train the Prediction Model.} The neural network $f_\omega$ is trained by minimizing the surrogate loss:
 \[
 \omega^\star
 := 
@@ -261,64 +239,64 @@ are passed into the polynomial-time algorithm:
 This approach applies broadly to scheduling, routing, assignment, and other
 combinatorial optimization problems in which the deterministic case is
 tractable and structurally interpretable.
-In this paper, we demonstrate two scheduling problems
+In this paper, we show two scheduling problems
 under uncertainty that can be solved using our framework.
 
-\subsection{Implications for Scheduling Problems}
-\label{sec:framework-scheduling}
+% \subsection{Implications for Scheduling Problems}
+% \label{sec:framework-scheduling}
 
-Scheduling problems are a natural fit for the proposed framework because many
-deterministic scheduling objectives admit polynomial-time optimal rules with
-explicit structure.
-In such cases, the set $\mathcal{D}$ of critical decisions is not an
-abstraction: it corresponds to the comparisons and assignments performed by the
-rule itself.
-Importantly, $\mathcal{D}$ is \emph{problem- and rule-dependent} and does not
-have to be a set of job pairs.
+% Scheduling problems are a natural fit for the proposed framework because many
+% deterministic scheduling objectives admit polynomial-time optimal rules with
+% explicit structure.
+% In such cases, the set $\mathcal{D}$ of critical decisions is not an
+% abstraction: it corresponds to the comparisons and assignments performed by the
+% rule itself.
+% Importantly, $\mathcal{D}$ is \emph{problem- and rule-dependent} and does not
+% have to be a set of job pairs.
 
-\paragraph{Examples of critical-decision sets.}
-\begin{itemize}
-    \item \textbf{SPT for $1\|\sum C_j$:}
-    $\mathcal{D}$ can be taken as pairwise precedence decisions
-    $d=(i,j)$ encoding ``$i$ should precede $j$'', induced by comparisons
-    of processing times.
-    \item \textbf{EDD for due-date objectives:}
-    $\mathcal{D}$ can similarly be precedence decisions based on due dates.
-    \item \textbf{FIFO in single-server queues:}
-    $\mathcal{D}$ encodes precedence decisions induced by arrival-time order.
-    \item \textbf{Johnson's rule for $F2\|C_{\max}$:}
-    $\mathcal{D}$ naturally decomposes into (i) per-job group-assignment
-    decisions (whether job $i$ belongs to $G_1$ or $G_2$) and
-    (ii) within-group ordering decisions.
-    The former are \emph{not} pairwise comparisons.
-\end{itemize}
+% \paragraph{Examples of critical-decision sets.}
+% \begin{itemize}
+%     \item \textbf{SPT for $1\|\sum C_j$:}
+%     $\mathcal{D}$ can be taken as pairwise precedence decisions
+%     $d=(i,j)$ encoding ``$i$ should precede $j$'', induced by comparisons
+%     of processing times.
+%     \item \textbf{EDD for due-date objectives:}
+%     $\mathcal{D}$ can similarly be precedence decisions based on due dates.
+%     \item \textbf{FIFO in single-server queues:}
+%     $\mathcal{D}$ encodes precedence decisions induced by arrival-time order.
+%     \item \textbf{Johnson's rule for $F2\|C_{\max}$:}
+%     $\mathcal{D}$ naturally decomposes into (i) per-job group-assignment
+%     decisions (whether job $i$ belongs to $G_1$ or $G_2$) and
+%     (ii) within-group ordering decisions.
+%     The former are \emph{not} pairwise comparisons.
+% \end{itemize}
 
-\paragraph{Why decision-level weights matter.}
-Weights $w_d(\theta^\star)$ are essential: they determine which mistakes the
-learning algorithm prioritizes.
-For SCT, swapping two jobs far apart in the sequence can have much larger
-impact than swapping two adjacent jobs; for Johnson's rule, misclassifying a
-job close to the boundary $p_{i1}=p_{i2}$ may be less harmful than
-misclassifying a job with a large margin, and some within-group misorderings
-increase makespan substantially more than others.
+% \paragraph{Why decision-level weights matter.}
+% Weights $w_d(\theta^\star)$ are essential: they determine which mistakes the
+% learning algorithm prioritizes.
+% For SCT, swapping two jobs far apart in the sequence can have much larger
+% impact than swapping two adjacent jobs; for Johnson's rule, misclassifying a
+% job close to the boundary $p_{i1}=p_{i2}$ may be less harmful than
+% misclassifying a job with a large margin, and some within-group misorderings
+% increase makespan substantially more than others.
 
 \subsection{Running Example: Outpatient Scheduling}
 \label{sec:framework-running-example}
 
 Consider a stylized outpatient clinic with a single exam doctor.
-Patients $i=1,\dots,n$ arrive with known appointment/arrival times $a_i$ and
+Patients $i=1,\dots,n$ arrive randomly with known appointment times and
 uncertain exam durations.
 Depending on the operational objective, a deterministic policy might implement
-FIFO (serve in order of $a_i$), an EDD-like rule (serve those with earlier due
-times first), or an SPT-like rule (serve those with shorter predicted exams
+FIFO (serve in order of arrival), an EDD-like rule (serve those with earlier appointment times first), or 
+an SPT-like rule (serve those with shorter predicted exams
 first) as a proxy for minimizing waiting or completion-time objectives.
 
 In this setting, a critical decision could be a precedence relation (``serve
 patient $i$ before patient $j$''), but it could also be a per-patient
 classification decision (``patient $i$ belongs to the short-visit group''),
 depending on the scheduling rule used.
-The surrogate~\eqref{eq:general-surrogate} penalizes incorrect or ambiguous
-decisions through $\sigma(s_d/\lambda)$ and uses $w_d(\theta^\star)$ to reflect
+The surrogate in Eq.~\eqref{eq:general-surrogate} penalizes incorrect or ambiguous
+decisions through $\sigma(s_d/\lambda)$ and uses $\phi_d(\theta^\star)$ to reflect
 their downstream impact (e.g., increase in total waiting time or SCT).
 This connects directly to the hospital case study in
 Section~\ref{sec:case_study}, where our learning objective is designed to
@@ -329,9 +307,9 @@ In the remainder of the paper, we instantiate the framework on two canonical
 problems: single-machine SCT minimization (Problem~1) and two-machine flow shop
 makespan minimization (Problem~2).
 For each, we derive a problem-specific surrogate by specifying (i) the set of
-critical decisions $\mathcal{D}$ and (ii) the weights $w_d$.
+critical decisions $\mathcal{D}$ and (ii) the weights $\phi_d$.
 
-\section{Problem 1: Single-Machine Sum of Completion Times}
+\section{Problem 1: Single-Machine Scheduling}
 \label{sec:problem1}
 
 We first examine smart predict-and-optimize methods applied to single-machine scheduling with the SCT objective.
@@ -392,7 +370,7 @@ A pair \((i,j)\) is said to be \emph{misordered} if \(y_i < y_j\) but the schedu
 Clearly this conditional error, which represents the actual cost of mispredicting task durations, has a different structure from the MSE, which represents the incurred cost of mispredicting task durations.
 To solve this problem, we aim to find a loss function for the prediction phase, different from MSE, that minimizes the actual cost of mispredicting task durations.
 
-\subsection{Regret Formulation for SCT}
+%\subsection{Regret Formulation for SCT}
 
 Accordingly, we define the smart predict-and-schedule problem in terms of regret.
 
@@ -443,96 +421,96 @@ where \(\mathcal{F}\) is the space of candidate functions, such as neural networ
 Thus, training adjusts \(\hat{f}\) to minimize the number and severity of misordered pairs, aligning predictions with true task durations.
 When \(\hat{f}\) preserves correct orderings, the sigmoid term remains near zero, driving \(L_{\text{sigmoid}}\) downward.
 
-\subsubsection{Properties of the sigmoid-based surrogate}
+% \subsubsection{Properties of the sigmoid-based surrogate}
 
-To show the usefulness of the sigmoid-based surrogate loss function for predict and schedule, we need to show that it is differentiable and approximates the regret in the SCT problem.
+% To show the usefulness of the sigmoid-based surrogate loss function for predict and schedule, we need to show that it is differentiable and approximates the regret in the SCT problem.
 
-The non-differentiability of the regret loss in Equation~\ref{eq:smartsched} is caused by the use of \(\max(0, \text{sign}(x))\), effectively a \(\text{ReLU}(\text{sign}(x))\) operation that is non-differentiable at \(x=0\).
-To solve the non-differentiability problem, we replace this with the sigmoid function \(\sigma(x)\) as a smooth approximation, enabling gradient-based optimization.
-Several properties of the sigmoid-based surrogate support its effectiveness:
+% The non-differentiability of the regret loss in Equation~\ref{eq:smartsched} is caused by the use of \(\max(0, \text{sign}(x))\), effectively a \(\text{ReLU}(\text{sign}(x))\) operation that is non-differentiable at \(x=0\).
+% To solve the non-differentiability problem, we replace this with the sigmoid function \(\sigma(x)\) as a smooth approximation, enabling gradient-based optimization.
+% Several properties of the sigmoid-based surrogate support its effectiveness:
 
-\begin{property}[Differentiability and smooth gradients]
-\label{prop:differentiability}
-The surrogate loss \(L_{\text{sigmoid}}\) is infinitely differentiable.
-The derivative of the sigmoid function is:
-\[
-\sigma'(u) = \sigma(u)(1-\sigma(u)).
-\]
-\end{property}
-\noindent Differentiability ensures stable gradient-based optimization throughout training, which allows us to train a neural network to solve
-the scheduling problem via an SPO-like method.
+% \begin{property}[Differentiability and smooth gradients]
+% \label{prop:differentiability}
+% The surrogate loss \(L_{\text{sigmoid}}\) is infinitely differentiable.
+% The derivative of the sigmoid function is:
+% \[
+% \sigma'(u) = \sigma(u)(1-\sigma(u)).
+% \]
+% \end{property}
+% \noindent Differentiability ensures stable gradient-based optimization throughout training, which allows us to train a neural network to solve
+% the scheduling problem via an SPO-like method.
 
-\begin{property}[Tunable sensitivity via \(\lambda\)]
-The steepness of the decision boundary is controlled by \(\lambda>0\).
-\end{property}
-\begin{proof}
-The derivative \(\sigma'(u)\) is maximized near \(u=0\).
-Smaller \(\lambda\) values sharpen the sigmoid, increasing sensitivity to small misorderings.
-\end{proof}
-\noindent The hyperparameter \(\lambda\) thus offers a mechanism to fine-tune model responsiveness to near-boundary predictions.
-Higher $\lambda$
-yields low penalty for misorderings, while low values of $\lambda$
-push the objective to converge to Equation~\ref{eq:smartsched}.
+% \begin{property}[Tunable sensitivity via \(\lambda\)]
+% The steepness of the decision boundary is controlled by \(\lambda>0\).
+% \end{property}
+% \begin{proof}
+% The derivative \(\sigma'(u)\) is maximized near \(u=0\).
+% Smaller \(\lambda\) values sharpen the sigmoid, increasing sensitivity to small misorderings.
+% \end{proof}
+% \noindent The hyperparameter \(\lambda\) thus offers a mechanism to fine-tune model responsiveness to near-boundary predictions.
+% Higher $\lambda$
+% yields low penalty for misorderings, while low values of $\lambda$
+% push the objective to converge to Equation~\ref{eq:smartsched}.
 
-\begin{property}[Order sensitivity and penalization]
-\label{prop:order}
-The sigmoid loss penalizes misordered task pairs.
-\end{property}
-\begin{proof}
-For tasks \(i\) and \(j\) where \(y_j > y_i\), the loss contribution is:
-\[
-(j-i)(y_j-y_i)\,\sigma\!\Bigl(\tfrac{\hat{f}(x_i) - \hat{f}(x_j)}{\lambda}\Bigr).
-\]
-Correctly ordered pairs (\(\hat{f}(x_j) > \hat{f}(x_i)\)) yield negative inputs to \(\sigma\), resulting in near-zero penalties.
-Incorrectly ordered pairs (\(\hat{f}(x_i) > \hat{f}(x_j)\)) yield positive inputs, maximizing the penalty.
-\end{proof}
-\noindent As \(\lambda\to\infty\), all penalties converge to a uniform value, diminishing order sensitivity.
+% \begin{property}[Order sensitivity and penalization]
+% \label{prop:order}
+% The sigmoid loss penalizes misordered task pairs.
+% \end{property}
+% \begin{proof}
+% For tasks \(i\) and \(j\) where \(y_j > y_i\), the loss contribution is:
+% \[
+% (j-i)(y_j-y_i)\,\sigma\!\Bigl(\tfrac{\hat{f}(x_i) - \hat{f}(x_j)}{\lambda}\Bigr).
+% \]
+% Correctly ordered pairs (\(\hat{f}(x_j) > \hat{f}(x_i)\)) yield negative inputs to \(\sigma\), resulting in near-zero penalties.
+% Incorrectly ordered pairs (\(\hat{f}(x_i) > \hat{f}(x_j)\)) yield positive inputs, maximizing the penalty.
+% \end{proof}
+% \noindent As \(\lambda\to\infty\), all penalties converge to a uniform value, diminishing order sensitivity.
 
-\begin{property}[Sensitivity to small misorderings]
-\label{prop:sensitivity}
-The sigmoid loss penalizes near-boundary cases where \(\hat{f}(x_i) \approx \hat{f}(x_j)\).
-\end{property}
-\begin{proof}
-When \(\hat{f}(x_i) \approx \hat{f}(x_j)\), the input to the sigmoid approaches zero, yielding:
-\[
-\sigma(0) = 0.5.
-\]
-Thus, pairs with uncertain ordering are still penalized, encouraging the model to separate predictions more clearly.
-\end{proof}
+% \begin{property}[Sensitivity to small misorderings]
+% \label{prop:sensitivity}
+% The sigmoid loss penalizes near-boundary cases where \(\hat{f}(x_i) \approx \hat{f}(x_j)\).
+% \end{property}
+% \begin{proof}
+% When \(\hat{f}(x_i) \approx \hat{f}(x_j)\), the input to the sigmoid approaches zero, yielding:
+% \[
+% \sigma(0) = 0.5.
+% \]
+% Thus, pairs with uncertain ordering are still penalized, encouraging the model to separate predictions more clearly.
+% \end{proof}
 
-Finally, we present a convergence guarantee:
+% Finally, we present a convergence guarantee:
 
-\begin{theorem}[Convergence to regret loss]
-\label{thm:lambda_impact}
-The surrogate loss \(L_{\text{sigmoid}}\) converges to the regret loss \(L_{\text{regret}}\) as \(\lambda \to 0\).
-\end{theorem}
-\begin{proof}
-As \(\lambda \to 0\), the scaled differences \((\hat{f}(x_i)-\hat{f}(x_j))/\lambda\) tend toward \(\pm\infty\), and the sigmoid function \(\sigma(u)\) converges to a step function:
-\[
-\sigma(u) \to 
-\begin{cases}
-1, & u > 0, \\
-0, & u \leq 0,
-\end{cases}
-\]
-thus recovering the original regret loss.
-\end{proof}
-\noindent These properties position the sigmoid-based surrogate as a natural fit for learning-based scheduling under uncertainty.
+% \begin{theorem}[Convergence to regret loss]
+% \label{thm:lambda_impact}
+% The surrogate loss \(L_{\text{sigmoid}}\) converges to the regret loss \(L_{\text{regret}}\) as \(\lambda \to 0\).
+% \end{theorem}
+% \begin{proof}
+% As \(\lambda \to 0\), the scaled differences \((\hat{f}(x_i)-\hat{f}(x_j))/\lambda\) tend toward \(\pm\infty\), and the sigmoid function \(\sigma(u)\) converges to a step function:
+% \[
+% \sigma(u) \to 
+% \begin{cases}
+% 1, & u > 0, \\
+% 0, & u \leq 0,
+% \end{cases}
+% \]
+% thus recovering the original regret loss.
+% \end{proof}
+% \noindent These properties position the sigmoid-based surrogate as a natural fit for learning-based scheduling under uncertainty.
 
-\subsubsection{Limitations of the sigmoid-based loss}
+% \subsubsection{Limitations of the sigmoid-based loss}
 
-While effective for single-machine SCT minimization, several limitations remain.
-First, the method has not been extended to multi-machine or distributed scheduling scenarios.
-Handling task dependencies, release times, or resource constraints would require significant modifications.
-Second, the hyperparameter \(\lambda\) critically influences model performance.
-Improper selection may cause either unstable training (if \(\lambda\) is too small) or diminished order sensitivity (if \(\lambda\) is too large), necessitating careful hyperparameter tuning.
-Third, pairwise loss computation scales quadratically with the number of tasks, which may become computationally expensive for large-scale instances.
-Although sampling techniques can mitigate this, further work is needed to improve scalability. 
-Finally, the underlying deterministic scheduling problem must be solvable in polynomial time; otherwise, training becomes computationally infeasible, as exact solutions used in the learning process are not efficiently obtainable.
+% While effective for single-machine SCT minimization, several limitations remain.
+% First, the method has not been extended to multi-machine or distributed scheduling scenarios.
+% Handling task dependencies, release times, or resource constraints would require significant modifications.
+% Second, the hyperparameter \(\lambda\) critically influences model performance.
+% Improper selection may cause either unstable training (if \(\lambda\) is too small) or diminished order sensitivity (if \(\lambda\) is too large), necessitating careful hyperparameter tuning.
+% Third, pairwise loss computation scales quadratically with the number of tasks, which may become computationally expensive for large-scale instances.
+% Although sampling techniques can mitigate this, further work is needed to improve scalability. 
+% Finally, the underlying deterministic scheduling problem must be solvable in polynomial time; otherwise, training becomes computationally infeasible, as exact solutions used in the learning process are not efficiently obtainable.
 
-Addressing these limitations is an important direction for future work, with the goal of broadening the applicability of surrogate-based scheduling methods to more complex and large-scale environments.
+% Addressing these limitations is an important direction for future work, with the goal of broadening the applicability of surrogate-based scheduling methods to more complex and large-scale environments.
 
-\section{Problem 2: Two-Machine Flow Shop Scheduling}
+\section{Problem 2: Flow Shop Scheduling}
 \label{sec:flowshop}
 
 The surrogate framework developed in Section~\ref{sec:framework} naturally extends
@@ -698,7 +676,7 @@ We constructed two synthetic datasets using linear and nonlinear functions to si
 This setup offers full control over noise and duration variability, allowing us to isolate the effect of surrogate loss choice.
 In the absence of established benchmarks, these two datasets support systematic evaluation.
 \begin{itemize}
-    \item \emph{Linear model:} \( f(x) = \mathbf{xw} \), where \(\mathbf{w}\) is a randomly generated weight vector, and \(\mathbf{x}\) consists of features uniformly sampled from \([0, 1]\).
+    %\item \emph{Linear model:} \( f(x) = \mathbf{xw} \), where \(\mathbf{w}\) is a randomly generated weight vector, and \(\mathbf{x}\) consists of features uniformly sampled from \([0, 1]\).
     
     \item \emph{Nonlinear model:} A nonlinear combination is computed as:
     \[
@@ -709,18 +687,18 @@ In the absence of established benchmarks, these two datasets support systematic 
     The function was chosen to ensure that the learning task remains nontrivial, requiring the model to capture both local and global feature dependencies, while still being interpretable and reproducible.
     The final task durations were computed as:
     \[
-    f(x) = 50 + \texttt{scale\_factor} \cdot (g(x) + 2),
+    f(x) = 50 + g(x),
     \]
-    ensuring strictly positive durations, typically in the range \([50, 400]\) under standard settings.
+    ensuring strictly positive durations. %, typically in the range \([50, 400]\) under standard settings.
 \end{itemize}
 
-Gaussian noise with standard deviation \(\sigma \in [0.1, 5]\) was added to simulate uncertainty.
-Task duration variability was adjusted through the \texttt{scale\_factor}.
+Gaussian noise with standard deviation $\sigma$ was added to simulate uncertainty.
 
 \paragraph{Benchmark methods.}
 We compared our method against two strong baselines.
 The first is \emph{SPO+}, a convex surrogate loss designed for predict-and-optimize tasks \cite{elmachtoub2022smart}, which focuses predictions on minimizing decision regret.
-The second is the \emph{logistic rank loss}, a learn-to-rank (LTR) surrogate loss \cite{fu2024efficient} that penalizes incorrect pairwise orderings using logistic regression.
+The second is the \emph{logistic rank loss}, a learn-to-rank (LTR) surrogate loss %\cite{fu2024efficient} 
+that penalizes incorrect pairwise orderings using logistic regression.
 
 \paragraph{Implementation details.}
 The experiments were implemented in Python.
@@ -740,18 +718,22 @@ SCT errors were visualized on a logarithmic scale to highlight relative differen
 Datasets were generated using the described models, with varying noise levels and task duration ranges.
 Two experimental settings were considered:
 \begin{itemize}
-    \item \emph{Fixed noise levels:} The \texttt{scale\_factor} was varied to assess performance under different task duration variability.
-    \item \emph{Fixed ranges:} Noise levels (\(\sigma\)) were varied to evaluate model robustness to prediction uncertainty.
+    %\item \emph{Noise levels:} The \texttt{scale\_factor} was varied to assess performance under different task duration variability.
+    \item \emph{Noise levels:} Noise levels (\(\sigma\)) were varied to evaluate model robustness to prediction uncertainty.
 \end{itemize}
-Each dataset was normalized and split into 80\% training and 20\% test subsets.
+Each dataset was normalized and split into 70\% training, 10\% validation and 20\% test subsets.
 
 For each setting, models were trained with \emph{SPO+}, \emph{Rank Loss}, and the \emph{Sigmoid Surrogate} objectives using two-hidden-layer neural networks.
+\todo[inline]{Explain better pairwise concept}
 Training used the Adam optimizer with early stopping, and pairwise methods sampled task pairs per iteration.
 Models were evaluated on unseen test data by comparing SCT values against the true optimal order, with results averaged over ten runs.
 
 \subsection{Results}
 
-Figure~\ref{fig:all-methods-comparison} presents a comparison of SPO+, Rank Loss, and the proposed sigmoid surrogate on nonlinear datasets with uneven task durations.
+Single machine, and then for 2-flowshop.
+
+\begin{comment}
+    Figure~\ref{fig:all-methods-comparison} presents a comparison of SPO+, Rank Loss, and the proposed sigmoid surrogate on nonlinear datasets with uneven task durations.
 The x-axis shows the noise standard deviation, and the y-axis plots the logarithmic SCT error relative to the optimal solution.
 The sigmoid surrogate demonstrates robustness across noise levels, consistently achieving lower SCT compared to SPO+ and Rank Loss.
 
@@ -804,8 +786,10 @@ Rank Loss & 58.2 \\
 \end{tabular}
 \end{table}
 
-\section{Experiments: Two-Machine Flow Shop}
-\label{sec:flowshop-experiments}
+\end{comment}
+
+%\section{Experiments: Two-Machine Flow Shop}
+%\label{sec:flowshop-experiments}
 
 Designing and evaluating surrogates for the two-machine flow shop (Problem~2) follows the same principles as in the SCT case but requires careful handling of both group assignments and within-group orderings.
 In this version of the paper, we focus on presenting the surrogate construction and leave a full empirical study of the flow shop surrogate to future work.
