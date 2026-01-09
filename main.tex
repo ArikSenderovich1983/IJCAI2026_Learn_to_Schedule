@@ -155,13 +155,16 @@ which is generally non-differentiable with respect to~$\omega$.
 The framework 
 below addresses this challenge by exploiting problem structure.
 
-\noindent\textbf{Step 1: Identify Unknown Parameters.} For each job $i$, define the unknown parameter vector $\theta_i^\star$ governing
-its contribution to the optimization problem.
-For scheduling, these may be
-processing times or resource requirements.
+\noindent\textbf{Step 1: Identify Unknown Parameters (or Decision-Relevant Scores).}
+For each job $i$, define the unknown parameter vector $\theta_i^\star$ governing
+its contribution to the optimization problem (e.g., processing times, due dates,
+or machine-dependent durations).
 Let a dataset
-$\mathcal{D}=\{(x_i,\theta_i^\star)\}_{i=1}^N$ be given, consisting of past
+$\mathcal{D}=\{(x_j,\theta_j^\star)\}_{j=1}^N$ be given, consisting of past
 observations from which a predictor $f_\omega$ can be trained.
+In some problems, it is convenient for $f_\omega$ to predict not the raw
+parameters $\theta$ directly, but a set of \emph{decision-relevant scores} that
+parameterize the critical decisions of the deterministic algorithm (Step~2).
 
 \noindent\textbf{Step 2: Identify a Deterministic Polynomial-Time Counterpart.} Many optimization problems become tractable when $\theta^\star$ is known.
 Suppose that, for known parameters $\theta$, the deterministic variant admits a
@@ -198,9 +201,18 @@ score} $s_d(\omega;x)$ produced by the predictor, such that the sign of
 $s_d$ encodes the model's preferred outcome for $d$ (e.g., ``$i$ before $j$''
 or ``job $i \in G_1$'').
 We then replace the hard, non-differentiable decision indicator by a smooth
-sigmoid approximation
+sigmoid approximation.
+To ensure the surrogate penalizes the \emph{wrong} outcome (rather than
+encouraging a fixed sign), we also define a \emph{ground-truth decision label}
+$y_d(\theta^\star)\in\{-1,+1\}$ indicating the correct outcome for decision $d$
+under the true parameters:
 \[
-\sigma\!\left( \frac{s_d(\omega;x)}{\lambda} \right),
+y_d(\theta^\star)=+1 \ \text{if the correct outcome matches } s_d>0,\qquad
+y_d(\theta^\star)=-1 \ \text{otherwise.}
+\]
+We then use the smooth misclassification indicator
+\[
+\sigma\!\left( -\frac{y_d(\theta^\star)\, s_d(\omega;x)}{\lambda} \right),
 \]
 where $\lambda>0$ controls sharpness around the decision boundary $s_d=0$.
 
@@ -213,7 +225,7 @@ L_{\mathrm{surr}}(\omega)
 \sum_{d \in \mathcal{D}}
 \phi_d(\theta^\star)\,
 \sigma\!\left(
-\frac{s_d(\omega;x)}{\lambda}
+\frac{-y_d(\theta^\star)\, s_d(\omega;x)}{\lambda}
 \right),
 \end{equation}
 where $\phi_d(\theta^\star)\ge 0$ measures the impact of deciding $d$ incorrectly
@@ -229,8 +241,9 @@ descent.
 \arg\min_{\omega}
 L_{\mathrm{surr}}(\omega).
 \]
-At inference time, the predicted parameters $\hat{\theta}=f_{\omega^\star}(x)$
-are passed into the polynomial-time algorithm:
+At inference time, the model produces either predicted parameters
+$\hat{\theta}=f_{\omega^\star}(x)$ or decision-relevant scores that determine
+the critical decisions; these are passed into the polynomial-time algorithm:
 \[
 \hat{\pi}
 :=
@@ -312,11 +325,24 @@ critical decisions $\mathcal{D}$ and (ii) the weights $\phi_d$.
 \section{Problem 1: Single-Machine Scheduling}
 \label{sec:problem1}
 
-We first examine smart predict-and-optimize methods applied to single-machine scheduling with the SCT objective.
-We begin by defining the basic scheduling problem under consideration, namely the single-machine sum of completion times minimization problem.
-We then describe the task uncertainty model, formulate the learning problem, and introduce a surrogate loss that approximates regret while remaining differentiable.
+We now instantiate the four-step framework of Section~\ref{sec:framework} for the
+single-machine sum of completion times (SCT) objective.
+The deterministic counterpart is solved by the shortest-processing-time (SPT)
+rule; we derive a smooth, decision-level surrogate that targets the pairwise
+precedence decisions induced by SPT and weights each potential misordering by
+its SCT impact.
 
-\subsection{Scheduling Problem Under Uncertainty}
+\subsection{Step 1: Identify Unknown Parameters}
+\label{sec:sct-step1}
+
+In this problem, the unknown parameter for each task $i$ is its processing time
+$y_i>0$.
+We observe features $x_i\in\mathbb{R}^p$ and learn a predictor
+$\hat{y}_i = f_\omega(x_i)$ from a dataset
+$\mathcal{D} = \{(x_j, y_j)\}_{j=1}^N$.
+
+\subsection{Step 2: Deterministic Polynomial-Time Counterpart}
+\label{sec:sct-step2}
 
 \paragraph{Deterministic problem.}
 We consider the following single-resource scheduling setting: a resource is assigned to process $n$ tasks (e.g., jobs scheduled for a given day).
@@ -331,23 +357,22 @@ This historical data can be used to predict task durations and subsequently sche
 However, prediction errors can lead to suboptimal schedules.
 
 \paragraph{Modeling uncertainty in task durations.}
-Adopting a supervised learning framework, let $x$ denote a $p$-dimensional feature vector describing a task.
-For $n$ independent tasks with unknown durations $y_i$ ($i=1,\ldots,n$), we assume the following model~\cite{hastie2009elements}:
+Adopting a supervised learning framework, we assume the following model~\cite{hastie2009elements}:
 \begin{equation} \label{eq:master_ppm}
 y_i = f(x_i) + \epsilon_i,
 \end{equation}
 where $f$ is an unknown deterministic function, and $\epsilon_i$ is a random noise term with mean $0$ and variance $\sigma^2$ (identically distributed across tasks).
 
 \paragraph{Baseline learning approach.}
-A dataset \(\mathcal{D} = \{(x_j, y_j)\}_{j=1}^{N}\) contains historical feature-duration pairs, where typically \(N \gg n\).
-The goal is to leverage this historical data to learn a predictor \(\hat{f}(x)\) to optimize scheduling decisions.
-
-A straightforward approach is the predict-then-optimize paradigm~\cite{Mandi2020}, in which \(\hat{f}\) is learned by minimizing empirical mean squared error (MSE):
+A straightforward approach is the predict-then-optimize paradigm~\cite{Mandi2020},
+in which $f_\omega$ is learned by minimizing empirical mean squared error (MSE):
 \begin{equation}
-\hat{f} = \arg\min_{f \in \mathcal{F}} \sum_{i=1}^{N} \bigl(f(x_i) - y_i\bigr)^2,
+\omega^\star_{\mathrm{MSE}}
+=
+\arg\min_{\omega} \sum_{j=1}^{N} \bigl(f_\omega(x_j) - y_j\bigr)^2,
 \end{equation}
-where \(\mathcal{F}\) denotes the function class (e.g., linear models, neural networks).
-The resulting model predicts durations, and the optimization phase solves the scheduling problem using these predictions.
+The resulting model predicts durations $\hat{y}_i=f_{\omega^\star_{\mathrm{MSE}}}(x_i)$,
+and the optimization phase schedules tasks by sorting predicted durations (SPT).
 
 In other words, prediction errors are unavoidable, but not all impact the task order in scheduling.
 MSE treats all errors the same, even though only those that change task order impact the SCT objective.
@@ -375,25 +400,37 @@ To solve this problem, we aim to find a loss function for the prediction phase, 
 Accordingly, we define the smart predict-and-schedule problem in terms of regret.
 
 \begin{problem}{Regret minimization in SCT} \label{prob:problem1}
-Find $\hat{f}$ that minimizes the expected regret:
+Find $f_\omega$ that minimizes the expected regret:
 \begin{equation} \label{eq:smartsched}
-L_{\text{regret}} = \sum_{\substack{y_i < y_j}} R_{i,j} \cdot \max(0, \text{sign}(\hat{f}(x_i) - \hat{f}(x_j))).
+L_{\text{regret}} = \sum_{\substack{y_i < y_j}} R_{i,j} \cdot \max(0, \text{sign}(f_\omega(x_i) - f_\omega(x_j))).
 \end{equation}
 \end{problem}
 
 For example, consider two tasks \(i\) and \(j\) with true durations \(y_i < y_j\).
-If \(\hat{f}(x_i) > \hat{f}(x_j)\), the tasks are misordered, increasing the SCT.
+If \(f_\omega(x_i) > f_\omega(x_j)\), the tasks are misordered, increasing the SCT.
 The regret-based loss directly targets such misorderings by reducing their probability.
 This means that even large prediction errors may be tolerated if they are symmetric, regardless of their impact on task ordering.
 In contrast, regret-based models focus explicitly on getting the order right, yielding better scheduling decisions even when prediction accuracy is imperfect.
 
-Yet, directly optimizing regret is challenging due to the non-differentiability of the objective and the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}.
-To address this, we now propose a differentiable surrogate loss that approximates pairwise misorderings, facilitating end-to-end learning for smart predict-and-schedule.
+Yet, directly optimizing regret is challenging due to non-differentiability and
+the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}.
+We therefore derive a differentiable surrogate loss that targets the critical
+pairwise precedence decisions of SPT and weights each decision by its SCT
+impact.
 
-\subsection{Sigmoid Surrogate for SCT}
+\subsection{Step 3: A Sigmoid Surrogate for SCT}
 \label{sec:methodology}
 
-We next present the main contribution for Problem~1, namely a surrogate-based loss function that approximates regret in the SCT problem while remaining differentiable and suitable for gradient-based optimization.
+The critical decisions for SPT are pairwise precedence comparisons.
+For a pair $(i,j)$, define the decision score
+\(
+s_{i,j}(\omega;x)= f_\omega(x_i)-f_\omega(x_j)
+\),
+whose sign encodes the model's preference.
+When $y_i<y_j$, the correct order is $i$ before $j$, and a misordering occurs
+when $s_{i,j}(\omega;x)>0$.
+We approximate this hard indicator with a sigmoid
+\(\sigma(s_{i,j}(\omega;x)/\lambda)\), weighted by the SCT impact of the swap.
 
 \subsubsection{Sigmoid loss for SPO}
 
@@ -404,22 +441,28 @@ L_{\text{sigmoid}}
 \;=\;
 \sum_{\substack{y_i < y_j}}
   R_{i,j}\,
-  \sigma\!\Bigl( \tfrac{\hat{f}(x_i) - \hat{f}(x_j)}{\lambda} \Bigr),
+  \sigma\!\Bigl( \tfrac{f_\omega(x_i) - f_\omega(x_j)}{\lambda} \Bigr),
 \end{equation}
 where \(\sigma(x) = \tfrac{1}{1+e^{-x}}\) is the sigmoid function, and \(\lambda>0\) controls the steepness around misordered predictions.
 A larger \(\lambda\) smooths transitions, while a smaller \(\lambda\) sharpens sensitivity to misorderings.
 
-By minimizing the empirical sigmoid loss, the learned model \(\hat{f}\) is encouraged to satisfy \(\hat{f}(x_j) > \hat{f}(x_i)\) whenever \(y_j > y_i\).
+By minimizing the empirical sigmoid loss, the learned model \(f_\omega\) is encouraged to satisfy \(f_\omega(x_j) > f_\omega(x_i)\) whenever \(y_j > y_i\).
 Formally:
 \[
-\hat{f}
+\omega^\star
 \;=\;
-\arg\min_{f\in\mathcal{F}}
-  L_{\text{sigmoid}}(f),
+\arg\min_{\omega}
+  L_{\text{sigmoid}}(\omega),
 \]
-where \(\mathcal{F}\) is the space of candidate functions, such as neural networks.
-Thus, training adjusts \(\hat{f}\) to minimize the number and severity of misordered pairs, aligning predictions with true task durations.
-When \(\hat{f}\) preserves correct orderings, the sigmoid term remains near zero, driving \(L_{\text{sigmoid}}\) downward.
+Thus, training adjusts \(f_\omega\) to minimize the number and severity of misordered pairs, aligning predictions with true task durations.
+When \(f_\omega\) preserves correct orderings, the sigmoid term remains near zero, driving \(L_{\text{sigmoid}}\) downward.
+
+\subsection{Step 4: Train and Infer with SPT}
+\label{sec:sct-step4}
+
+At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
+compute predicted durations $\hat{y}_i=f_{\omega^\star}(x_i)$ and return the
+SPT schedule obtained by sorting tasks by $\hat{y}_i$ in ascending order.
 
 % \subsubsection{Properties of the sigmoid-based surrogate}
 
@@ -523,7 +566,14 @@ We show how to construct a smooth surrogate loss that mimics the structure of
 the optimal rule while remaining differentiable and suitable for gradient-based
 learning.
 
-\subsection{Problem Structure and Implications for Learning}
+\subsection{Step 1: Identify Unknown Parameters}
+\label{sec:flowshop-step1}
+
+In the $F2\|C_{\max}$ setting, the unknown parameters for each job $i$ are its
+two processing times $(p_{i1},p_{i2})$ on machines $1$ and $2$.
+
+\subsection{Step 2: Deterministic Polynomial-Time Counterpart}
+\label{sec:flowshop-step2}
 
 In the $F2\|C_{\max}$ setting, each job $i$ has two true processing times 
 $(p_{i1}, p_{i2})$, one for each machine.
@@ -546,7 +596,7 @@ learning task is therefore not to approximate raw durations, but to approximate
 To reflect this, each
 job $i$ is mapped to two scalar prediction scores
 \[
-(\hat{d}_i, \hat{s}_i) = f_\theta(x_i),
+(\hat{d}_i, \hat{s}_i) = f_\omega(x_i),
 \]
 where $\hat{d}_i \in \mathbb{R}$ is a \emph{group score} indicating whether the
 job should belong to $G_1$ or $G_2$, and $\hat{s}_i \in \mathbb{R}$ is a
@@ -562,7 +612,8 @@ The predicted sequence then follows the structure of Johnson’s rule:
 This parameterization separates the discrete grouping decision from the within-group ranking
 decision, reflecting the decomposition inherent in Johnson’s optimal policy.
 
-\subsection{A Sigmoid-Based Surrogate for Johnson's Rule}
+\subsection{Step 3: A Sigmoid-Based Surrogate for Johnson's Rule}
+\label{sec:flowshop-step3}
 
 To train the model, we define a smooth surrogate loss consisting of two components:
 (1) a penalty for incorrect \emph{group assignment}, and
@@ -656,6 +707,15 @@ As $\lambda \to 0$, the sigmoids in~\eqref{eq:group-loss} and
 and within-group ordering, so that $L_{\mathrm{Johnson}}$ converges to a
 piecewise-constant approximation of the true makespan regret induced by
 Johnson's rule.
+
+\subsection{Step 4: Train and Infer with Johnson's Rule}
+\label{sec:flowshop-step4}
+
+We train $f_\omega$ by minimizing the surrogate $L_{\mathrm{Johnson}}$.
+At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
+compute $(\hat{d}_i,\hat{s}_i)=f_{\omega^\star}(x_i)$ and construct the schedule
+using the three-step Johnson-style procedure above (partition into
+$\hat{G}_1,\hat{G}_2$, sort within each group, then concatenate).
 
 
 \section{Evaluation}
