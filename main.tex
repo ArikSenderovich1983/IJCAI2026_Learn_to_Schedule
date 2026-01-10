@@ -188,15 +188,15 @@ The construction follows three principles:
 
 \paragraph{(a) Structural decomposition.}
 Let $\mathcal{A}$ determine a schedule through a finite set of \emph{critical
-decisions} $\mathcal{D}$, such as:
+decisions} $\mathcal{K}$, such as:
 (i) pairwise precedence comparisons (e.g., SPT/EDD/FIFO-style ordering
 decisions), (ii) threshold tests, or (iii) group assignments (e.g., Johnson's
 partition into $G_1$ and $G_2$).
-Crucially, the elements of $\mathcal{D}$ need not be job pairs: in some rules
+Crucially, the elements of $\mathcal{K}$ need not be job pairs: in some rules
 they are per-job classification decisions, and in others they are comparisons.
 
 \paragraph{(b) Sigmoid relaxations.}
-For each critical decision $d \in \mathcal{D}$, define a signed \emph{decision
+For each critical decision $d \in \mathcal{K}$, define a signed \emph{decision
 score} $s_d(\omega;x)$ produced by the predictor, such that the sign of
 $s_d$ encodes the model's preferred outcome for $d$ (e.g., ``$i$ before $j$''
 or ``job $i \in G_1$'').
@@ -225,7 +225,7 @@ The surrogate loss is assembled as a weighted sum over critical decisions:
 \label{eq:general-surrogate}
 L_{\mathrm{surr}}(\omega)
 :=
-\sum_{d \in \mathcal{D}}
+\sum_{d \in \mathcal{K}}
 \phi_d(\theta^\star)\,
 \sigma\!\left(
 \frac{-m_d(\omega;x,\theta^\star)}{\lambda}
@@ -264,24 +264,24 @@ under uncertainty that can be solved using our framework.
 % Scheduling problems are a natural fit for the proposed framework because many
 % deterministic scheduling objectives admit polynomial-time optimal rules with
 % explicit structure.
-% In such cases, the set $\mathcal{D}$ of critical decisions is not an
+% In such cases, the set $\mathcal{K}$ of critical decisions is not an
 % abstraction: it corresponds to the comparisons and assignments performed by the
 % rule itself.
-% Importantly, $\mathcal{D}$ is \emph{problem- and rule-dependent} and does not
+% Importantly, $\mathcal{K}$ is \emph{problem- and rule-dependent} and does not
 % have to be a set of job pairs.
 
 % \paragraph{Examples of critical-decision sets.}
 % \begin{itemize}
 %     \item \textbf{SPT for $1\|\sum C_j$:}
-%     $\mathcal{D}$ can be taken as pairwise precedence decisions
+%     $\mathcal{K}$ can be taken as pairwise precedence decisions
 %     $d=(i,j)$ encoding ``$i$ should precede $j$'', induced by comparisons
 %     of processing times.
 %     \item \textbf{EDD for due-date objectives:}
-%     $\mathcal{D}$ can similarly be precedence decisions based on due dates.
+%     $\mathcal{K}$ can similarly be precedence decisions based on due dates.
 %     \item \textbf{FIFO in single-server queues:}
-%     $\mathcal{D}$ encodes precedence decisions induced by arrival-time order.
+%     $\mathcal{K}$ encodes precedence decisions induced by arrival-time order.
 %     \item \textbf{Johnson's rule for $F2\|C_{\max}$:}
-%     $\mathcal{D}$ naturally decomposes into (i) per-job group-assignment
+%     $\mathcal{K}$ naturally decomposes into (i) per-job group-assignment
 %     decisions (whether job $i$ belongs to $G_1$ or $G_2$) and
 %     (ii) within-group ordering decisions.
 %     The former are \emph{not} pairwise comparisons.
@@ -322,7 +322,7 @@ In the remainder of the paper, we instantiate the framework on two canonical
 problems: single-machine SCT minimization (Problem~1) and two-machine flow shop
 makespan minimization (Problem~2).
 For each, we derive a problem-specific surrogate by specifying (i) the set of
-critical decisions $\mathcal{D}$ and (ii) the weights $\phi_d$.
+critical decisions $\mathcal{K}$ and (ii) the weights $\phi_d$.
 
 \section{Problem 1: Single-Machine Scheduling}
 \label{sec:problem1}
@@ -428,7 +428,15 @@ whose sign encodes the model's preference.
 When $\theta_i^\star<\theta_j^\star$ (i.e., $y_i<y_j$), the correct order is
 $i$ before $j$, and a misordering occurs
 when $s_{i,j}(\omega;x)>0$.
-We approximate this hard indicator with a sigmoid
+In the framework notation, take $\mathcal{K}=\{d=(i,j): i<j\}$, $s_d=s_{i,j}$,
+and orient by the ground truth:
+\(
+m_d(\omega;x,\theta^\star)=-s_{i,j}(\omega;x)
+\)
+for $\theta_i^\star<\theta_j^\star$, so $m_d>0$ iff the order is correct.
+With $\phi_d(\theta^\star)=R_{i,j}$, Eq.~\eqref{eq:general-surrogate} gives the term
+$R_{i,j}\sigma(s_{i,j}/\lambda)$.
+We therefore approximate the hard misordering indicator with the sigmoid
 \(\sigma(s_{i,j}(\omega;x)/\lambda)\), weighted by the SCT impact of the swap.
 
 The proposed sigmoid-based loss penalizes misordered task pairs, encouraging the model to predict task durations aligned with their true ordering.
@@ -617,7 +625,19 @@ To train the model, we define a smooth surrogate loss consisting of two componen
 (1) a penalty for incorrect \emph{group assignment}, and
 (2) a penalty for incorrect \emph{within-group ordering}.
 Both components rely on sigmoidal approximations of indicator functions, as in
-Section~\ref{sec:methodology}.
+Section~\ref{sec:framework}.
+
+\smallskip
+\noindent\textbf{Instantiation of $(\mathcal{K}, s_d, m_d, \phi_d)$ for Johnson's rule.}
+Let $\mathcal{K}=\mathcal{K}_{\mathrm{group}}\cup\mathcal{K}_{\mathrm{order}}$
+with group decisions $d=i$ and ordering decisions $d=(i,j)$.
+For $d=i$, set $s_d=\hat{d}_i$, $m_d=\hat{d}_i d_i$ with $d_i=p_{i1}-p_{i2}$, and
+$\phi_d=|d_i|$.
+For $d=(i,j)$, set $\phi_d=\Delta_{i,j}$ and use sortable scores:
+in $G_1$ (true $p_{i1}<p_{j1}$) take $s_d=\hat{s}_i-\hat{s}_j$ and $m_d=-s_d$;
+in $G_2$ (true $p_{i2}>p_{j2}$) take $s_d=\hat{s}_j-\hat{s}_i$ and $m_d=-s_d$.
+Then each term in $L_{\mathrm{group}}$ and $L_{\mathrm{order}}$ matches
+Eq.~\eqref{eq:general-surrogate}.
 
 \paragraph{Group assignment surrogate.}
 For each job $i$, the true group indicator satisfies
