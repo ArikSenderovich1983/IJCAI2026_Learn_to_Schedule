@@ -217,7 +217,7 @@ We then use the smooth misclassification indicator
 \[
 \sigma\!\left( -\frac{m_d(\omega;x,\theta^\star)}{\lambda} \right),
 \]
-where $\lambda>0$ controls sharpness around the decision boundary $s_d=0$.
+where $\lambda>0$ controls sharpness around the boundary, $s_d=0$.
 
 \paragraph{(c) Weighted aggregation.}
 The surrogate loss is assembled as a weighted sum over critical decisions:
@@ -298,7 +298,6 @@ under uncertainty that can be solved using our framework.
 
 \subsection{Running Example: Outpatient Scheduling}
 \label{sec:framework-running-example}
-
 Consider a stylized outpatient clinic with a single exam doctor.
 Patients $i=1,\dots,n$ arrive randomly with known appointment times and
 uncertain exam durations.
@@ -327,9 +326,8 @@ critical decisions $\mathcal{D}$ and (ii) the weights $\phi_d$.
 
 \section{Problem 1: Single-Machine Scheduling}
 \label{sec:problem1}
-
 We now instantiate the four-step framework of Section~\ref{sec:framework} for the
-single-machine sum of completion times (SCT) objective.
+single-machine sum of completion times (SCT) objective, where the processing times are unknown.
 The deterministic counterpart is solved by the shortest-processing-time (SPT)
 rule; we derive a smooth, decision-level surrogate that targets the pairwise
 precedence decisions induced by SPT and weights each potential misordering by
@@ -343,10 +341,7 @@ We observe features $x_i\in\mathbb{R}^p$ and learn a predictor
 $\hat{\theta}_i = f_\omega(x_i)$ from a dataset
 $\mathcal{D} = \{(x_j, \theta_j^\star)\}_{j=1}^N$ (equivalently, $\hat{y}_i=\hat{\theta}_i$).
 
-\noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart.}
-
-\paragraph{Deterministic problem.}
-We consider the following single-resource scheduling setting: a resource is assigned to process $n$ tasks (e.g., jobs scheduled for a given day).
+\noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart.} We consider the following single-resource scheduling setting: a resource is assigned to process $n$ tasks (e.g., jobs scheduled for a given day).
 All $n$ tasks are assumed to be available at the beginning of the scheduling period, but their processing times are unknown.
 The resource is non-idling, working continuously until all tasks are completed.
 The objective is to find a task sequencing that minimizes the sum of completion times (SCT).
@@ -358,19 +353,17 @@ times, the deterministic algorithm is
 \),
 where $\mathcal{A}_{\mathrm{SPT}}$ sorts tasks by increasing $\theta_i$.
 
-In realistic settings, however, the actual task durations are unknown.
-Instead, historical data with features correlated with task durations are available.
-This historical data can be used to predict task durations and subsequently schedule the tasks using the SPT rule.
-However, prediction errors can lead to suboptimal schedules.
+% In realistic settings, however, the actual task durations are unknown.
+% Instead, historical data with features correlated with task durations are available.
+% This historical data can be used to predict task durations and subsequently schedule the tasks using the SPT rule.
+% However, prediction errors can lead to suboptimal schedules.
 
-\paragraph{Modeling uncertainty in task durations.}
-Adopting a supervised learning framework, we assume the following model~\cite{hastie2009elements}:
-\begin{equation} \label{eq:master_ppm}
-y_i = f(x_i) + \epsilon_i,
-\end{equation}
-where $f$ is an unknown deterministic function, and $\epsilon_i$ is a random noise term with mean $0$ and variance $\sigma^2$ (identically distributed across tasks).
+% Adopting a supervised learning framework, we assume the following model~\cite{hastie2009elements}:
+% \begin{equation} \label{eq:master_ppm}
+% y_i = f(x_i) + \epsilon_i,
+% \end{equation}
+% where $f$ is an unknown deterministic function, and $\epsilon_i$ is a random noise term with mean $0$ and variance $\sigma^2$ (identically distributed across tasks).
 
-\paragraph{Baseline learning approach.}
 A straightforward approach is the predict-then-optimize paradigm~\cite{Mandi2020},
 in which $f_\omega$ is learned by minimizing empirical mean squared error (MSE):
 \begin{equation}
@@ -414,9 +407,7 @@ Find $f_\omega$ that minimizes the expected regret:
 \begin{equation} \label{eq:smartsched}
 L_{\text{regret}} = \sum_{\substack{\theta_i^\star < \theta_j^\star}} R_{i,j} \cdot \max(0, \text{sign}(f_\omega(x_i) - f_\omega(x_j))).
 \end{equation}
-\end{problem}
-
-For example, consider two tasks \(i\) and \(j\) with true durations \(y_i < y_j\).
+\end{problem} For example, consider two tasks \(i\) and \(j\) with true durations \(y_i < y_j\).
 If \(f_\omega(x_i) > f_\omega(x_j)\), the tasks are misordered, increasing the SCT.
 The regret-based loss directly targets such misorderings by reducing their probability.
 This means that even large prediction errors may be tolerated if they are symmetric, regardless of their impact on task ordering.
@@ -428,10 +419,7 @@ We therefore derive a differentiable surrogate loss that targets the critical
 pairwise precedence decisions of SPT and weights each decision by its SCT
 impact.
 
-\noindent\textbf{Step 3: Derive a Smooth Surrogate from SPT.}
-\label{sec:methodology}
-
-The critical decisions for SPT are pairwise precedence comparisons.
+\noindent\textbf{Step 3: Derive a Smooth Surrogate from SPT.}  The critical decisions for SPT are pairwise precedence comparisons.
 For a pair $(i,j)$, define the decision score
 \(
 s_{i,j}(\omega;x)= \hat{\theta}_i-\hat{\theta}_j = f_\omega(x_i)-f_\omega(x_j)
@@ -442,8 +430,6 @@ $i$ before $j$, and a misordering occurs
 when $s_{i,j}(\omega;x)>0$.
 We approximate this hard indicator with a sigmoid
 \(\sigma(s_{i,j}(\omega;x)/\lambda)\), weighted by the SCT impact of the swap.
-
-\paragraph{Sigmoid loss for SPO.}
 
 The proposed sigmoid-based loss penalizes misordered task pairs, encouraging the model to predict task durations aligned with their true ordering.
 The empirical sigmoid loss is defined as:
@@ -468,9 +454,7 @@ Formally:
 Thus, training adjusts \(f_\omega\) to minimize the number and severity of misordered pairs, aligning predictions with true task durations.
 When \(f_\omega\) preserves correct orderings, the sigmoid term remains near zero, driving \(L_{\text{sigmoid}}\) downward.
 
-\noindent\textbf{Step 4: Train and Infer with SPT.}
-
-At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
+\noindent\textbf{Step 4: Train and Infer with SPT.} At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
 compute $\hat{\theta}_i=f_{\omega^\star}(x_i)$ and return
 $\hat{\pi}=\mathcal{A}_{\mathrm{SPT}}(\hat{\theta})$, i.e., the SPT schedule
 obtained by sorting tasks by $\hat{\theta}_i$ in ascending order.
@@ -568,7 +552,7 @@ obtained by sorting tasks by $\hat{\theta}_i$ in ascending order.
 \label{sec:flowshop}
 
 The surrogate framework developed in Section~\ref{sec:framework} naturally extends
-to other scheduling problems whose optimal deterministic policies admit simple
+to other scheduling problems whose optimal deterministic policies admit rule-based
 structural characterizations.
 In this section, we demonstrate this by considering
 the classical two-machine flow shop scheduling problem with makespan minimization,
@@ -584,9 +568,7 @@ Section~\ref{sec:framework}, let
 $\theta_i^\star := (p_{i1},p_{i2})$ and
 $\theta^\star := (\theta_1^\star,\dots,\theta_n^\star)$.
 
-\noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart.}
-
-In the $F2\|C_{\max}$ setting, each job $i$ has two true processing times 
+\noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart.} In the $F2\|C_{\max}$ setting, each job $i$ has two true processing times 
 $(p_{i1}, p_{i2})$, one for each machine.
 Johnson’s rule partitions all jobs into
 two sets:
