@@ -874,12 +874,7 @@ and discuss their implications.
 \subsection{Case Description: Scheduling in DayHospital}
 
 At \textit{DayHospital}, patients typically arrive at the clinic in the morning and complete their visits in the afternoon.
-These visits consist of a sequence of activities, which may include:
-\begin{enumerate}
-    \item \emph{Blood Draw} – the initial step of the visit, during which blood specimens are collected and sent for laboratory analysis;
-    \item \emph{Examination} – a consultation with a medical doctor or nurse practitioner (this step is optional and occasionally skipped);
-    \item \emph{Chemotherapy Infusion} – the final and typically longest step for patients receiving treatment.
-\end{enumerate}
+These visits consist of a sequence of activities, which may include a blood draw, an examination, and chemotherapy infusion. 
 In this work, we focus on the \emph{examination stage} of the process.
 In our model, \textit{doctors are treated as single-server machines}, and \textit{patients are modeled as jobs} in a scheduling system.
 Each patient is assigned a pre-scheduled appointment time for the exam, which we treat as the known arrival time to the system.
