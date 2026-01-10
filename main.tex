@@ -208,6 +208,11 @@ parameters.
 Specifically, define a \emph{signed correctness margin}
 $m_d(\omega;x,\theta^\star)$ such that $m_d>0$ when the model agrees with the
 ground-truth decision for $d$ (with margin) and $m_d<0$ otherwise.
+In other words, $s_d$ is the model's \emph{raw} score for decision $d$, while
+$m_d$ is the same score \emph{re-oriented} so that its sign always encodes
+\emph{correctness}. Concretely, if under $\theta^\star$ the correct outcome for
+$d$ corresponds to ``$s_d>0$,'' then $m_d=s_d$; if the correct outcome
+corresponds to ``$s_d<0$,'' then $m_d=-s_d$.
 We then use the smooth misclassification indicator
 \[
 \sigma\!\left( -\frac{m_d(\omega;x,\theta^\star)}{\lambda} \right),
@@ -332,10 +337,11 @@ its SCT impact.
 
 \noindent\textbf{Step 1: Identify Unknown Parameters.}
 In this problem, the unknown parameter for each task $i$ is its processing time
-$y_i>0$.
+$y_i>0$. In the notation of Section~\ref{sec:framework}, we write
+$\theta_i^\star := y_i$ and $\theta^\star := (\theta_1^\star,\dots,\theta_n^\star)$.
 We observe features $x_i\in\mathbb{R}^p$ and learn a predictor
-$\hat{y}_i = f_\omega(x_i)$ from a dataset
-$\mathcal{D} = \{(x_j, y_j)\}_{j=1}^N$.
+$\hat{\theta}_i = f_\omega(x_i)$ from a dataset
+$\mathcal{D} = \{(x_j, \theta_j^\star)\}_{j=1}^N$ (equivalently, $\hat{y}_i=\hat{\theta}_i$).
 
 \noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart.}
 
@@ -345,6 +351,12 @@ All $n$ tasks are assumed to be available at the beginning of the scheduling per
 The resource is non-idling, working continuously until all tasks are completed.
 The objective is to find a task sequencing that minimizes the sum of completion times (SCT).
 When the true durations $y_1, \ldots, y_n$ are known, the optimal sequence follows the shortest processing time first (SPT) heuristic, arranging tasks in ascending order of their durations~\cite{pinedo2022scheduling}.
+Equivalently, letting $\theta=(\theta_1,\dots,\theta_n)$ denote processing
+times, the deterministic algorithm is
+\(
+\pi(\theta)=\mathcal{A}_{\mathrm{SPT}}(\theta)
+\),
+where $\mathcal{A}_{\mathrm{SPT}}$ sorts tasks by increasing $\theta_i$.
 
 In realistic settings, however, the actual task durations are unknown.
 Instead, historical data with features correlated with task durations are available.
@@ -368,6 +380,9 @@ in which $f_\omega$ is learned by minimizing empirical mean squared error (MSE):
 \end{equation}
 The resulting model predicts durations $\hat{y}_i=f_{\omega^\star_{\mathrm{MSE}}}(x_i)$,
 and the optimization phase schedules tasks by sorting predicted durations (SPT).
+In Section~\ref{sec:framework} notation, this corresponds to computing
+$\hat{\theta}_i=f_{\omega^\star_{\mathrm{MSE}}}(x_i)$ and then
+$\hat{\pi}=\mathcal{A}_{\mathrm{SPT}}(\hat{\theta})$.
 
 In other words, prediction errors are unavoidable, but not all impact the task order in scheduling.
 MSE treats all errors the same, even though only those that change task order impact the SCT objective.
@@ -397,7 +412,7 @@ Accordingly, we define the smart predict-and-schedule problem in terms of regret
 \begin{problem}{Regret minimization in SCT} \label{prob:problem1}
 Find $f_\omega$ that minimizes the expected regret:
 \begin{equation} \label{eq:smartsched}
-L_{\text{regret}} = \sum_{\substack{y_i < y_j}} R_{i,j} \cdot \max(0, \text{sign}(f_\omega(x_i) - f_\omega(x_j))).
+L_{\text{regret}} = \sum_{\substack{\theta_i^\star < \theta_j^\star}} R_{i,j} \cdot \max(0, \text{sign}(f_\omega(x_i) - f_\omega(x_j))).
 \end{equation}
 \end{problem}
 
@@ -419,10 +434,11 @@ impact.
 The critical decisions for SPT are pairwise precedence comparisons.
 For a pair $(i,j)$, define the decision score
 \(
-s_{i,j}(\omega;x)= f_\omega(x_i)-f_\omega(x_j)
+s_{i,j}(\omega;x)= \hat{\theta}_i-\hat{\theta}_j = f_\omega(x_i)-f_\omega(x_j)
 \),
 whose sign encodes the model's preference.
-When $y_i<y_j$, the correct order is $i$ before $j$, and a misordering occurs
+When $\theta_i^\star<\theta_j^\star$ (i.e., $y_i<y_j$), the correct order is
+$i$ before $j$, and a misordering occurs
 when $s_{i,j}(\omega;x)>0$.
 We approximate this hard indicator with a sigmoid
 \(\sigma(s_{i,j}(\omega;x)/\lambda)\), weighted by the SCT impact of the swap.
@@ -434,14 +450,14 @@ The empirical sigmoid loss is defined as:
 \begin{equation}
 L_{\text{sigmoid}}
 \;=\;
-\sum_{\substack{y_i < y_j}}
+\sum_{\substack{\theta_i^\star < \theta_j^\star}}
   R_{i,j}\,
   \sigma\!\Bigl( \tfrac{f_\omega(x_i) - f_\omega(x_j)}{\lambda} \Bigr),
 \end{equation}
 where \(\sigma(x) = \tfrac{1}{1+e^{-x}}\) is the sigmoid function, and \(\lambda>0\) controls the steepness around misordered predictions.
 A larger \(\lambda\) smooths transitions, while a smaller \(\lambda\) sharpens sensitivity to misorderings.
 
-By minimizing the empirical sigmoid loss, the learned model \(f_\omega\) is encouraged to satisfy \(f_\omega(x_j) > f_\omega(x_i)\) whenever \(y_j > y_i\).
+By minimizing the empirical sigmoid loss, the learned model \(f_\omega\) is encouraged to satisfy \(f_\omega(x_j) > f_\omega(x_i)\) whenever \(\theta_j^\star > \theta_i^\star\).
 Formally:
 \[
 \omega^\star
@@ -455,8 +471,9 @@ When \(f_\omega\) preserves correct orderings, the sigmoid term remains near zer
 \noindent\textbf{Step 4: Train and Infer with SPT.}
 
 At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
-compute predicted durations $\hat{y}_i=f_{\omega^\star}(x_i)$ and return the
-SPT schedule obtained by sorting tasks by $\hat{y}_i$ in ascending order.
+compute $\hat{\theta}_i=f_{\omega^\star}(x_i)$ and return
+$\hat{\pi}=\mathcal{A}_{\mathrm{SPT}}(\hat{\theta})$, i.e., the SPT schedule
+obtained by sorting tasks by $\hat{\theta}_i$ in ascending order.
 
 % \subsubsection{Properties of the sigmoid-based surrogate}
 
@@ -562,7 +579,10 @@ learning.
 
 \noindent\textbf{Step 1: Identify Unknown Parameters.}
 In the $F2\|C_{\max}$ setting, the unknown parameters for each job $i$ are its
-two processing times $(p_{i1},p_{i2})$ on machines $1$ and $2$.
+two processing times on machines $1$ and $2$. In the notation of
+Section~\ref{sec:framework}, let
+$\theta_i^\star := (p_{i1},p_{i2})$ and
+$\theta^\star := (\theta_1^\star,\dots,\theta_n^\star)$.
 
 \noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart.}
 
@@ -580,14 +600,18 @@ concatenates the two sequences.
 Consequently, the optimal sequence is determined
 by (i) the correct group assignment of each job and (ii) the correct ordering 
 within each group.
+Equivalently, for known processing times $\theta$, the deterministic optimum is
+\(
+\pi(\theta)=\mathcal{A}_{\mathrm{J}}(\theta)
+\),
+where $\mathcal{A}_{\mathrm{J}}$ is Johnson's rule.
 
-When processing times are unknown and must be predicted from features $x_i$, the
-learning task is therefore not to approximate raw durations, but to approximate
-\emph{the structural decisions} induced by Johnson’s rule.
-To reflect this, each
-job $i$ is mapped to two scalar prediction scores
+When processing times are unknown and must be predicted from features $x_i$, we
+follow the Section~\ref{sec:framework} view and predict \emph{decision-relevant
+scores} that parameterize the critical decisions of $\mathcal{A}_{\mathrm{J}}$.
+Concretely, each job $i$ is mapped to two scalar scores
 \[
-(\hat{d}_i, \hat{s}_i) = f_\omega(x_i),
+(\hat{d}_i, \hat{s}_i) = f_\omega(x_i)=:\hat{\theta}_i,
 \]
 where $\hat{d}_i \in \mathbb{R}$ is a \emph{group score} indicating whether the
 job should belong to $G_1$ or $G_2$, and $\hat{s}_i \in \mathbb{R}$ is a
@@ -602,6 +626,8 @@ The predicted sequence then follows the structure of Johnson’s rule:
 
 This parameterization separates the discrete grouping decision from the within-group ranking
 decision, reflecting the decomposition inherent in Johnson’s optimal policy.
+At inference time, we apply the same deterministic structure,
+$\hat{\pi}=\mathcal{A}_{\mathrm{J}}(\hat{\theta})$, using $\hat{\theta}_i=(\hat{d}_i,\hat{s}_i)$.
 
 \noindent\textbf{Step 3: Derive a Smooth Surrogate from Johnson's Rule.}
 
