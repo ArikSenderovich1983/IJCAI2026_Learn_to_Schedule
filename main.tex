@@ -203,16 +203,14 @@ or ``job $i \in G_1$'').
 We then replace the hard, non-differentiable decision indicator by a smooth
 sigmoid approximation.
 To ensure the surrogate penalizes the \emph{wrong} outcome (rather than
-encouraging a fixed sign), we also define a \emph{ground-truth decision label}
-$y_d(\theta^\star)\in\{-1,+1\}$ indicating the correct outcome for decision $d$
-under the true parameters:
-\[
-y_d(\theta^\star)=+1 \ \text{if the correct outcome matches } s_d>0,\qquad
-y_d(\theta^\star)=-1 \ \text{otherwise.}
-\]
+encouraging a fixed sign), we orient each decision score using the true
+parameters.
+Specifically, define a \emph{signed correctness margin}
+$m_d(\omega;x,\theta^\star)$ such that $m_d>0$ when the model agrees with the
+ground-truth decision for $d$ (with margin) and $m_d<0$ otherwise.
 We then use the smooth misclassification indicator
 \[
-\sigma\!\left( -\frac{y_d(\theta^\star)\, s_d(\omega;x)}{\lambda} \right),
+\sigma\!\left( -\frac{m_d(\omega;x,\theta^\star)}{\lambda} \right),
 \]
 where $\lambda>0$ controls sharpness around the decision boundary $s_d=0$.
 
@@ -225,7 +223,7 @@ L_{\mathrm{surr}}(\omega)
 \sum_{d \in \mathcal{D}}
 \phi_d(\theta^\star)\,
 \sigma\!\left(
-\frac{-y_d(\theta^\star)\, s_d(\omega;x)}{\lambda}
+\frac{-m_d(\omega;x,\theta^\star)}{\lambda}
 \right),
 \end{equation}
 where $\phi_d(\theta^\star)\ge 0$ measures the impact of deciding $d$ incorrectly
@@ -309,7 +307,7 @@ patient $i$ before patient $j$''), but it could also be a per-patient
 classification decision (``patient $i$ belongs to the short-visit group''),
 depending on the scheduling rule used.
 The surrogate in Eq.~\eqref{eq:general-surrogate} penalizes incorrect or ambiguous
-decisions through $\sigma(s_d/\lambda)$ and uses $\phi_d(\theta^\star)$ to reflect
+decisions through $\sigma(-m_d/\lambda)$ and uses $\phi_d(\theta^\star)$ to reflect
 their downstream impact (e.g., increase in total waiting time or SCT).
 This connects directly to the hospital case study in
 Section~\ref{sec:case_study}, where our learning objective is designed to
@@ -332,17 +330,14 @@ rule; we derive a smooth, decision-level surrogate that targets the pairwise
 precedence decisions induced by SPT and weights each potential misordering by
 its SCT impact.
 
-\subsection{Step 1: Identify Unknown Parameters}
-\label{sec:sct-step1}
-
+\noindent\textbf{Step 1: Identify Unknown Parameters.}
 In this problem, the unknown parameter for each task $i$ is its processing time
 $y_i>0$.
 We observe features $x_i\in\mathbb{R}^p$ and learn a predictor
 $\hat{y}_i = f_\omega(x_i)$ from a dataset
 $\mathcal{D} = \{(x_j, y_j)\}_{j=1}^N$.
 
-\subsection{Step 2: Deterministic Polynomial-Time Counterpart}
-\label{sec:sct-step2}
+\noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart.}
 
 \paragraph{Deterministic problem.}
 We consider the following single-resource scheduling setting: a resource is assigned to process $n$ tasks (e.g., jobs scheduled for a given day).
@@ -418,7 +413,7 @@ We therefore derive a differentiable surrogate loss that targets the critical
 pairwise precedence decisions of SPT and weights each decision by its SCT
 impact.
 
-\subsection{Step 3: A Sigmoid Surrogate for SCT}
+\noindent\textbf{Step 3: Derive a Smooth Surrogate from SPT.}
 \label{sec:methodology}
 
 The critical decisions for SPT are pairwise precedence comparisons.
@@ -432,7 +427,7 @@ when $s_{i,j}(\omega;x)>0$.
 We approximate this hard indicator with a sigmoid
 \(\sigma(s_{i,j}(\omega;x)/\lambda)\), weighted by the SCT impact of the swap.
 
-\subsubsection{Sigmoid loss for SPO}
+\paragraph{Sigmoid loss for SPO.}
 
 The proposed sigmoid-based loss penalizes misordered task pairs, encouraging the model to predict task durations aligned with their true ordering.
 The empirical sigmoid loss is defined as:
@@ -457,8 +452,7 @@ Formally:
 Thus, training adjusts \(f_\omega\) to minimize the number and severity of misordered pairs, aligning predictions with true task durations.
 When \(f_\omega\) preserves correct orderings, the sigmoid term remains near zero, driving \(L_{\text{sigmoid}}\) downward.
 
-\subsection{Step 4: Train and Infer with SPT}
-\label{sec:sct-step4}
+\noindent\textbf{Step 4: Train and Infer with SPT.}
 
 At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
 compute predicted durations $\hat{y}_i=f_{\omega^\star}(x_i)$ and return the
@@ -566,14 +560,11 @@ We show how to construct a smooth surrogate loss that mimics the structure of
 the optimal rule while remaining differentiable and suitable for gradient-based
 learning.
 
-\subsection{Step 1: Identify Unknown Parameters}
-\label{sec:flowshop-step1}
-
+\noindent\textbf{Step 1: Identify Unknown Parameters.}
 In the $F2\|C_{\max}$ setting, the unknown parameters for each job $i$ are its
 two processing times $(p_{i1},p_{i2})$ on machines $1$ and $2$.
 
-\subsection{Step 2: Deterministic Polynomial-Time Counterpart}
-\label{sec:flowshop-step2}
+\noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart.}
 
 In the $F2\|C_{\max}$ setting, each job $i$ has two true processing times 
 $(p_{i1}, p_{i2})$, one for each machine.
@@ -612,8 +603,7 @@ The predicted sequence then follows the structure of Johnson’s rule:
 This parameterization separates the discrete grouping decision from the within-group ranking
 decision, reflecting the decomposition inherent in Johnson’s optimal policy.
 
-\subsection{Step 3: A Sigmoid-Based Surrogate for Johnson's Rule}
-\label{sec:flowshop-step3}
+\noindent\textbf{Step 3: Derive a Smooth Surrogate from Johnson's Rule.}
 
 To train the model, we define a smooth surrogate loss consisting of two components:
 (1) a penalty for incorrect \emph{group assignment}, and
@@ -708,8 +698,7 @@ and within-group ordering, so that $L_{\mathrm{Johnson}}$ converges to a
 piecewise-constant approximation of the true makespan regret induced by
 Johnson's rule.
 
-\subsection{Step 4: Train and Infer with Johnson's Rule}
-\label{sec:flowshop-step4}
+\noindent\textbf{Step 4: Train and Infer with Johnson's Rule.}
 
 We train $f_\omega$ by minimizing the surrogate $L_{\mathrm{Johnson}}$.
 At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
@@ -866,54 +855,49 @@ We expect the Johnson-aligned surrogate in Section~\ref{sec:flowshop} to outperf
 \section{Case Study: Patient Scheduling}
 \label{sec:case_study}
 
-We further evaluated the proposed sigmoid-based surrogate loss on a real-world scheduling dataset collected from DayHospital, a cancer clinic
-in the United States.
-We start by describing the case, followed by the experimental setup and procedure, and lastly, we provide the results 
-and discuss their implications. 
+We evaluate the proposed sigmoid-based surrogate loss on a real-world dataset
+from \textit{DayHospital}, a U.S.\ cancer clinic. We describe the setting,
+experimental protocol, and results.
 
 \subsection{Case Description: Scheduling in DayHospital}
 
-At \textit{DayHospital}, patients typically arrive at the clinic in the morning and complete their visits in the afternoon.
-These visits consist of a sequence of activities, which may include a blood draw, an examination, and chemotherapy infusion. 
-In this work, we focus on the \emph{examination stage} of the process.
-In our model, \textit{doctors are treated as single-server machines}, and \textit{patients are modeled as jobs} in a scheduling system.
-Each patient is assigned a pre-scheduled appointment time for the exam, which we treat as the known arrival time to the system.
-However, the \emph{duration of each examination is uncertain} and not known in advance.
-
-This setting reflects a typical outpatient environment in which variability and uncertainty in service times complicate the planning and sequencing of activities.
-While some patients may skip the examination altogether, it remains a central point in the care flow for many.
-Understanding and addressing the uncertainty in examination durations is therefore essential for optimizing provider schedules and reducing patient delays throughout the system.
+DayHospital is an outpatient clinic where patients arrive in the morning and
+complete their visits later in the day. Visits may include a blood draw, an
+examination, and chemotherapy infusion. We focus on the \emph{examination}
+stage: doctors act as single-server machines and patients are jobs, with known
+appointment (arrival) times but \emph{uncertain} exam durations.
+The goal is to sequence exams to reduce congestion, as duration uncertainty can
+create large downstream delays.
 
 \subsection{Experimental Setup}
 
 \paragraph{Dataset.} 
-We used two months of operational data from \textit{DayHospital}, specifically January and November 2021.
-Two primary sources of data were available for analysis:
+We used two months of operational data from \textit{DayHospital} (January and
+November 2021). Data sources include:
 \begin{itemize}
-    \item \emph{Real-Time Location System (RTLS) data}, which captures the movement of patients and providers throughout the facility at 3-second intervals.
-    \item \emph{Appointment data}, which includes scheduled appointment times for the blood draw station.
+    \item \emph{Real-Time Location System (RTLS)} traces (3-second resolution).
+    \item \emph{Appointment data} with scheduled times.
 \end{itemize}
-The dataset includes approximately 201,000 patient pathways, all of which involve a visit to the blood draw station.
-For each \textit{visible patient} at this station, we observe three key timestamps: the time of arrival, the time at which service begins, and the time at which service is completed. 
+The dataset contains approximately 201,000 patient pathways. For each observed
+patient at a station, we extract arrival, service-start, and service-completion
+timestamps. After preprocessing, we focus on \textit{Exam} appointments. The
+goal is to predict true durations \(y_i\) from features \(x_i\) in a way that
+improves SCT under sequencing.
 
-Each record represents a scheduled medical appointment, characterized by several features.
-Following preprocessing, we filtered the dataset to focus specifically on \textit{Exam} appointments.
-The objective was to learn a model that predicts the actual appointment durations \( y_i \) from the available features \( x_i \), in a way that enables task sequencing to minimize SCT.
+Feature vectors \(x_i\) include \texttt{floor\_id}, \texttt{scheduled\_time},
+\texttt{department}, \texttt{scheduled\_duration\_min}, \texttt{diagnosis},
+\texttt{appointment\_type}, and \texttt{link\_flag} (whether the exam is
+followed by infusion).
 
-The feature vectors \(x_i\) were constructed using 
-appointment-level information such as \texttt{floor\_id} (different floors contain different departments), \texttt{scheduled\_time} (the appointment planned start time), \texttt{department}, \texttt{scheduled\_duration\_min} (the planned duration in minutes), \texttt{diagnosis}, \texttt{appointment\_type} (various exam types exist), and \texttt{link\_flag} (which indicates if the exam is followed by chemotherapy infusion). 
-
-To better reflect operational deployment, we organized the data by calendar months.
-For each month, the models were trained on the first three weeks of appointments and evaluated on the appointments from the fourth week.
-This setup simulates a realistic rolling horizon setting where models must generalize to near-future scheduling scenarios.
+To reflect deployment, we split by calendar time: for each month, train on the
+first three weeks and evaluate on the fourth week (rolling-horizon generalization).
 
 \paragraph{Benchmark methods.}
 We evaluated our proposed approach against several benchmark loss functions commonly used in predictive scheduling tasks:
 \begin{itemize}
-    \item \emph{Rank Loss}: A pairwise ranking objective based on the negative log-likelihood of correct pairwise comparisons, encouraging accurate relative ordering of task durations.
+    \item \emph{Rank Loss}: pairwise ranking via negative log-likelihood of correct comparisons.
     
-    \item \emph{Mean Squared Error (MSE)}: A standard regression loss that minimizes squared differences between predicted and true durations, without considering the downstream scheduling objective.
-    This is in essence a predict-then-optimize approach~\cite{shahabikargar2014predicting}.
+    \item \emph{Mean Squared Error (MSE)}: standard regression loss; a predict-then-optimize baseline~\cite{shahabikargar2014predicting}.
     
     \item \emph{SPO+}: A convex surrogate loss for predict-and-optimize problems \cite{elmachtoub2022smart}, which approximates the scheduling regret through a differentiable upper bound on the decision loss.
 \end{itemize}
@@ -922,22 +906,17 @@ We evaluated our proposed approach against several benchmark loss functions comm
 As in the synthetic experiments, the evaluation objective for the real-world data is to minimize the SCT induced by the predicted task orderings.
 For each model, predicted durations were used to sequence appointments, and the resulting SCT was computed based on the true durations.
 To facilitate comparison across months and models, we report the \emph{relative SCT error}, defined as the difference between the predicted and optimal SCT values, normalized by the optimal SCT.
-This reflects the scheduling regret incurred by each model and aligns with the evaluation used in the synthetic setting.
+This reflects scheduling regret and matches the synthetic evaluation.
 
 \subsection{Experimental Procedure}
 
-The models were implemented as feedforward neural networks consisting of two hidden layers with ReLU activations and a Softplus output layer.
-For consistency across experiments, all models were trained using the Adam optimizer with a learning rate of \(5 \times 10^{-3}\) and weight decay of \(1 \times 10^{-4}\).
-Early stopping was applied based on convergence of the training loss to prevent overfitting.
-
-Each method was trained for up to 2000 iterations, with the relative SCT error evaluated every 50 steps.
-The primary evaluation metric was the relative SCT error on the test set, computed by sequencing tasks using the model-predicted durations \(\hat{y}_i\) and comparing the resulting SCT to that of the optimal ordering under true durations \(y_i\).
-
-The SPO+ implementation utilized a mini-batch version of the surrogate loss, which incorporates a differentiable linear program to minimize cumulative completion time based on the predicted durations.
-This formulation enabled gradient-based optimization.
-All methods were evaluated using the same training--test splits and comparable model capacity to ensure a fair comparison.
-
-To assess robustness over time, we repeated this experiment using data from multiple months in the year 2021.
+Models are feedforward neural networks with two hidden layers (ReLU) and a
+Softplus output. All methods use Adam (\(5\times10^{-3}\) learning rate,
+\(10^{-4}\) weight decay) with early stopping. We train up to 2000 iterations
+and evaluate relative SCT error every 50 steps by sequencing with predicted
+durations \(\hat{y}_i\) and comparing SCT against the optimal order under true
+durations \(y_i\). SPO+ uses a mini-batch surrogate with a differentiable LP.
+All methods share the same splits and comparable model capacity.
 
 \subsection{Results}
 
@@ -970,9 +949,8 @@ SIG      & \textbf{0.30} & 0.29 & \textbf{0.31} & \textbf{0.29} & \textbf{0.33} 
 \end{tabular}
 \end{table}
 
-We now take a closer look at performance on January 2021 as a representative example.
-Figure~\ref{fig:real-data-jan} shows the relative SCT error over training iterations for each method on this dataset.
-The y-axis represents the SCT error relative to the optimal ordering, and the x-axis indicates the training steps.
+As a representative example, Figure~\ref{fig:real-data-jan} shows the relative
+SCT error over training iterations for January 2021.
 
 \begin{figure}[t]
     \centering
@@ -982,10 +960,10 @@ The y-axis represents the SCT error relative to the optimal ordering, and the x-
     \label{fig:real-data-jan}
 \end{figure}
 
-The results demonstrate that the sigmoid-based regret surrogate consistently achieves the lowest SCT error, outperforming all baselines throughout training.
-Rank Loss performs competitively early on but plateaus at a higher error.
-MSE converges more slowly and ultimately underperforms, confirming that minimizing prediction error alone does not lead to better scheduling.
-SPO+ converges but stabilizes at a higher SCT error, indicating sensitivity to model dynamics and optimization noise despite accounting for task ordering.
+Overall, the sigmoid-based surrogate achieves the lowest SCT error. Rank Loss is
+competitive early but plateaus higher; MSE underperforms, confirming that
+prediction accuracy alone is insufficient; SPO+ converges but stabilizes at
+higher error.
 
 \section{Related Work}
 \label{sec:related_work}
