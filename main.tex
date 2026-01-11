@@ -703,6 +703,7 @@ as $\min(\hat{p}_{i1}, \hat{p}_{j2}) -\min(\hat{p}_{j1}, \hat{p}_{i2})$.
 
 \paragraph{Implementation details.}
 The experiments were implemented in Python. Specifically, each baseline was trained using the same two-hidden-layer neural network architecture with the PyTorch library and the same number of iterations. Datasets were generated according to the described models, with varying noise levels $\eta$, to evaluate the models’ robustness to prediction uncertainty. Each dataset was normalized and split into 70\% training, 10\% validation, and 20\% test subsets. 
+Since we aim to address a wider range of scheduling problems in terms of problem size, we train a general predictive model that is independent of the number of jobs in the input schedule. To achieve this, during the training phase, the neural network schedules the entire training set. Considering all possible combinations of job sets of different lengths is infeasible; therefore, we adopt an approximation by sampling pairwise combinations. Moreover, we showed that sampling less 
 
 To reduce training time, we employ a pairwise sampling strategy rather than comparing all possible pairs of elements. This approach is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwaise_number}.
 
@@ -927,6 +928,7 @@ Future work will extend our approach to more complex scheduling scenarios (e.g.,
 \bibliographystyle{named}
 \bibliography{mybibfile}
 
+\newpage
 \appendix
 
 \section{Technical Appendix}
