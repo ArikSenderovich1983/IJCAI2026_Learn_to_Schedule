@@ -443,11 +443,7 @@ m_d(\omega;x,\theta^\star)=-s_{i,j}(\omega;x)
 for $\theta_i^\star<\theta_j^\star$, so $m_d>0$ iff the order is correct.
 With $\phi_d(\theta^\star)=R_{i,j}$, Eq.~\eqref{eq:general-surrogate} gives the term
 $R_{i,j}\sigma(s_{i,j}/\lambda)$.
-We therefore approximate the hard misordering indicator with 
-\(\sigma(s_{i,j}(\omega;x)/\lambda)\), weighted by the SCT impact of the swap.
-
-The proposed sigmoid-based loss penalizes misordered task pairs, encouraging the model to predict task durations aligned with their true ordering.
-The empirical sigmoid loss is defined as:
+The empirical sigmoid loss is thus defined as:
 \begin{equation}
 L_{\text{sigmoid}}
 \;=\;
