@@ -222,6 +222,7 @@ $m_d$ is the same score \emph{re-oriented} so that its sign always encodes
 \emph{correctness}. Concretely, if under $\theta^\star$ the correct outcome for
 $d$ corresponds to ``$s_d>0$,'' then $m_d=s_d$; if the correct outcome
 corresponds to ``$s_d<0$,'' then $m_d=-s_d$.
+(For example, if $s_d = \hat{\theta}_i - \hat{\theta}_j$ represents a precedence score where positive means ``$i$ before $j$,'' but the ground truth requires $j$ before $i$, we set $m_d = -s_d$ so that $m_d > 0$ signifies the correct decision.)
 We then use the smooth misclassification indicator
 \[
 \sigma\!\left( -\frac{m_d(\omega;x,\theta^\star)}{\lambda} \right),
