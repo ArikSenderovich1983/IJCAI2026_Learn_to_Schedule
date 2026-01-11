@@ -880,38 +880,23 @@ higher error.
 \section{Related Work}
 \label{sec:related_work}
 
-Task scheduling, a key focus in AI and operations research, involves estimating task durations and using decision-making algorithms to schedule tasks.
-This paper explores data-driven approaches for scheduling under task uncertainty. 
+We position our work within three strands of literature: smart predict-and-optimize, domain-specific learning, and learn-to-rank.
 
-\paragraph{Smart predict-and-optimize.}
-Traditionally, machine learning is used to predict task durations, which are then used to solve scheduling problems (e.g.,~\cite{shahabikargar2014predicting}).
-However, traditional methods often overlook the impact of predictions on decision-making, as they use loss functions like MSE that do not consider the scheduling problem. 
-The SPO framework~\cite{elmachtoub2022smart} addresses this by using an SPO loss function that evaluates decision error.
-However, the non-convex and discontinuous nature of the SPO loss poses challenges, leading to the development of the surrogate SPO+ loss function.
-While effective, SPO assumes deterministic task parameters and struggles with non-linear scenarios.
-Several extensions of SPO have been proposed to deal with these limitations and with specific problems.
-SPO Trees (SPOTs)~\cite{elmachtoub2020decisiontrees} train decision trees under the SPO framework, providing interpretable models with reduced complexity.
-However, they may not generalize well to noisy, non-linear scheduling scenarios.
-Applied to large-scale problems like knapsack and energy-cost scheduling~\cite{Mandi2020}, SPO-relax uses relaxation-based oracles to reduce computational costs while maintaining decision quality.
-It assumes reliable oracles and focuses on linear objectives.
-UNIFY~\cite{Silvestri2024} integrates ML and constrained optimization for multi-stage decision-making under uncertainty.
-It supports robust decisions but relies on reinforcement learning and virtual parameters, requiring problem-specific configurations.
-Demirovic et al.~\cite{Demirovic2019} explored techniques for minimizing regret in the knapsack problem, highlighting the trade-offs between complexity and performance in combinatorial settings.
+\noindent\textbf{Smart predict-and-optimize.}
+Standard predict-then-optimize approaches (e.g.,~\cite{shahabikargar2014predicting}) typically minimize prediction error (MSE), ignoring downstream decision impact.
+The SPO framework~\cite{elmachtoub2022smart} addresses this by minimizing decision regret directly, but its non-convexity necessitates surrogates like SPO+.
+While extensions exist---SPO Trees~\cite{elmachtoub2020decisiontrees} for interpretability, relaxation-based methods for knapsack~\cite{Mandi2020}, or RL-based constrained optimization~\cite{Silvestri2024}---they often assume deterministic parameters or struggle with nonlinear scheduling dynamics.
+In contrast, our framework directly exploits the critical-decision structure of polynomial-time rules, enabling stable, differentiable learning for complex scheduling objectives.
 
-\paragraph{Semi- and domain-specific SPO.}
-Semi-SPO approaches (e.g.,~\cite{Yang2023Semi,Yan2020Semi}) also use loss functions that are based on the outcome measurements from the optimization step.
-These outcome measurements are often chosen to work well in specific domains.
-Unlike SPO loss functions, semi-SPO loss functions are not derived from the regret measurement, and consequently cannot be proven to lead to an optimal solution.
+\noindent\textbf{Semi- and domain-specific SPO.}
+Semi-SPO~\cite{Yang2023Semi,Yan2020Semi} and domain-specific methods for transport~\cite{tian2023}, manufacturing~\cite{Wang2024Refinery}, and energy~\cite{Alrasheedi2024Microgrid} employ specialized losses to improve performance.
+However, these objectives typically lack theoretical guarantees of optimality.
+By contrast, our surrogate is provably consistent: it converges exactly to the true decision regret as the smoothing parameter $\lambda \to 0$ (Theorem~\ref{thm:lambda_impact}).
 
-Other domain-specific SPO techniques have been proposed, e.g., for transport planning~\cite{tian2023}, factory planning~\cite{Wang2024Refinery}, and energy grid optimization~\cite{Alrasheedi2024Microgrid}.
-Like semi-SPO, these use domain-specific loss functions that do not guarantee convergence to the 
-true loss of the underlying problem.
-Our work also approximates domain-specific loss, yet it provably converges 
-to the actual loss function.
-
-\paragraph{Learn to Rank.} 
-Our surrogate loss function uses the sigmoid function, common in learn-to-rank (LTR) methods like RankNet~\cite{burges2005learning}, ListWise~\cite{cao2007learning}, and BPR~\cite{rendle2009bpr}.
-Compared to these approaches, we introduce a loss function specifically designed to minimize SCT error, making it particularly suitable for scheduling tasks.
+\noindent\textbf{Learn to Rank.}
+Learn-to-rank (LTR) methods like RankNet~\cite{burges2005learning}, ListWise~\cite{cao2007learning}, and BPR~\cite{rendle2009bpr} also utilize sigmoid-based penalties.
+However, standard LTR losses optimize generic ranking metrics (e.g., AUC, NDCG) rather than the actual scheduling objective.
+Our approach adapts the LTR mechanism but weights each decision by its precise contribution to the objective (SCT or makespan), ensuring the model minimizes the relevant operational cost.
 
 \section{Conclusion}
 \label{sec:conclusion}
