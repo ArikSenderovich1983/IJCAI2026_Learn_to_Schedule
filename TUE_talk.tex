@@ -45,7 +45,49 @@
 \end{frame}
 
 %---------------------------------------------------------
-% HOOK: The Problem
+% CONTEXT: Business Process Optimization
+%---------------------------------------------------------
+\begin{frame}{Context: Business Process Optimization (BPO)}
+    \textbf{BPO} focuses on optimal decision-making during process execution.
+    
+    \vspace{0.5em}
+    \begin{columns}
+        \column{0.6\textwidth}
+        \textbf{Key Decision Types:}
+        \begin{itemize}
+            \item \textbf{Task Prioritization:} Which waiting case to process next?
+            \item \textbf{Resource Allocation:} Which resource to assign to a task?
+            \item \textbf{Case Admission:} When to admit/schedule a case?
+            \item \textbf{Path Choice:} How to route a case?
+        \end{itemize}
+        
+        \column{0.4\textwidth}
+        \centering
+        \textbf{Objectives:} \\
+        Min.\ Cost, Max.\ Throughput, Min.\ Waiting Time.
+    \end{columns}
+    
+    \vspace{1cm}
+    \centering
+    \alert{The complexity lies in \textbf{Uncertainty}: \\ arrivals, \textbf{durations}, and paths.}
+\end{frame}
+
+\begin{frame}{Focus: Scheduling Under Duration Uncertainty}
+    Many BPO problems reduce to \textbf{Scheduling} problems (Task Prioritization / Admission).
+    
+    \vspace{0.5em}
+    \begin{itemize}
+        \item \textbf{Ideal World:} If we knew task durations $y$, we could use optimal policies (SPT, Johnson's Rule).
+        \item \textbf{Real World:} Durations are unknown and stochastic.
+        \item \textbf{Standard Approach:} Use heuristics or deterministic averages.
+    \end{itemize}
+    
+    \vspace{0.5em}
+    \textbf{Result:} Suboptimal decisions due to the \emph{Predict-then-Optimize} gap.
+\end{frame}
+
+%---------------------------------------------------------
+% HOOK: The Disconnect
 %---------------------------------------------------------
 \begin{frame}{The Disconnect}
     \begin{columns}
