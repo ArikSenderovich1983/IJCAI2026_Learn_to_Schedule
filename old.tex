@@ -1,0 +1,56 @@
+\begin{comment}
+    Figure~\ref{fig:all-methods-comparison} presents a comparison of SPO+, Rank Loss, and the proposed sigmoid surrogate on nonlinear datasets with uneven task durations.
+The x-axis shows the noise standard deviation, and the y-axis plots the logarithmic SCT error relative to the optimal solution.
+The sigmoid surrogate demonstrates robustness across noise levels, consistently achieving lower SCT compared to SPO+ and Rank Loss.
+
+Figure~\ref{fig:improvement-percentages} shows the percentage improvement of SPO+ and Rank Loss relative to the sigmoid surrogate.
+Although SPO+ and Rank Loss perform competitively under low-noise conditions, their relative performance deteriorates as noise increases, underscoring the robustness of the proposed approach.
+
+Figure~\ref{fig:range-impact} examines performance as task duration ranges vary under a fixed noise level.
+The sigmoid surrogate maintains lower SCT errors across wide variability, highlighting its effectiveness in challenging scheduling scenarios.
+Our results demonstrate that the proposed sigmoid-based surrogate consistently outperforms SPO+ and Rank Loss in minimizing SCT, particularly under high-noise and high-variability conditions. 
+
+Turning to efficiency analysis, Table~\ref{tab:runtimes} reports the average runtime over 10 iterations for each method under consistent settings.
+The sigmoid method averaged 58.3 seconds, SPO+ averaged 57.3 seconds, and Rank Loss averaged 58.2 seconds, demonstrating comparable computational costs across methods.
+While runtime is comparable across methods, the improved SCT minimization offered by the sigmoid surrogate positions it as a promising choice for real-world scheduling applications involving uncertainty and variability.
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.45\textwidth]{improvement--percentage.png}
+    \caption{Percentage improvement of SPO+ and Rank Loss relative to the sigmoid surrogate.
+    Positive values indicate worse performance compared to the sigmoid surrogate loss.}
+    \label{fig:improvement-percentages}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.45\textwidth]{fixed--noise (2).png}
+    \caption{Impact of task duration range variability on SCT error for the three methods.}
+    \label{fig:range-impact}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Average runtime over 10 iterations per method.}
+\label{tab:runtimes}
+\begin{tabular}{lcc}
+\toprule
+Method & Runtime (seconds) \\
+\midrule
+Sigmoid surrogate & 58.3 \\
+SPO+ surrogate & 57.3 \\
+Rank Loss & 58.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{comment}
+
+
+
+%\section{Experiments: Two-Machine Flow Shop}
+%\label{sec:flowshop-experiments}
+
+%Designing and evaluating surrogates for the two-machine flow shop (Problem~2) follows the same principles as in the SCT case but requires careful handling of both group assignments and within-group orderings.
+%In this version of the paper, we focus on presenting the surrogate construction and leave a full empirical study of the flow shop surrogate to future work. Below we outline the intended experimental design to clarify how our framework extends empirically to this setting.
