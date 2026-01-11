@@ -389,17 +389,18 @@ For SCT, the cost of a prediction error depends entirely on whether it alters th
 Consider a sequencing where the task in position $k$ has duration $y_k$. The total SCT is $\sum_{k=1}^n (n+1-k) \, y_k$.
 Swapping two tasks at positions $i < j$ alters the objective by:
 \begin{align}
-R_{i,j} &= \big[(n{+}1{-}i)\, y_j + (n{+}1{-}j)\, y_i\big] - \big[(n{+}1{-}i)\, y_i + (n{+}1{-}j)\, y_j\big] \nonumber \\
+R_{i,j} &= \big[(n{+}1{-}i)\, y_j + (n{+}1{-}j)\, y_i\big] -\\
+&- \big[(n{+}1{-}i)\, y_i + (n{+}1{-}j)\, y_j\big] \nonumber \\
        &= (j - i)(y_j - y_i).
 \end{align}
-We therefore seek to minimize the \emph{decision regret}, defined as the total cost of all misordered pairs:
+We therefore seek to minimize the \emph{decision regret}, defined as the total cost of all misordered pairs.
+
 \begin{problem}{Regret minimization in SCT} \label{prob:problem1}
 Find $f_\omega$ that minimizes:
 \begin{equation} \label{eq:smartsched}
 L_{\text{regret}} = \sum_{\substack{\theta_i^\star < \theta_j^\star}} R_{i,j} \cdot \max(0, \text{sign}(f_\omega(x_i) - f_\omega(x_j))).
 \end{equation}
-\end{problem}
-Directly optimizing $L_{\text{regret}}$ is challenging due to non-differentiability and the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}.
+\end{problem} Directly optimizing $L_{\text{regret}}$ is challenging due to non-differentiability and the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}.
 We therefore derive a differentiable surrogate loss that targets the critical
 pairwise precedence decisions of SPT and weights each decision by its SCT
 impact.
@@ -428,9 +429,7 @@ L_{\text{sigmoid}}
 \sum_{\substack{\theta_i^\star < \theta_j^\star}}
   R_{i,j}\,
   \sigma\!\Bigl( \tfrac{f_\omega(x_i) - f_\omega(x_j)}{\lambda} \Bigr),
-\end{equation}
-where \(\sigma(x) = \tfrac{1}{1+e^{-x}}\) is the sigmoid function, and \(\lambda>0\) controls the steepness around misordered predictions.
-A larger \(\lambda\) smooths transitions, while a smaller \(\lambda\) sharpens sensitivity to misorderings.
+\end{equation} A larger \(\lambda\) smooths transitions, while a smaller \(\lambda\) sharpens sensitivity to misorderings.
 
 By minimizing the empirical sigmoid loss, the learned model \(f_\omega\) is encouraged to satisfy \(f_\omega(x_j) > f_\omega(x_i)\) whenever \(\theta_j^\star > \theta_i^\star\).
 Formally:
