@@ -848,7 +848,6 @@ Our approach adapts the LTR mechanism but weights each decision by its precise c
 
 This paper introduced a surrogate-based framework for predict-and-optimize that leverages deterministic, polynomial-time algorithms to construct smooth learning objectives aligned with decision regret.
 Within this framework, we developed sigmoid-based surrogates for two canonical scheduling problems under uncertainty: single-machine SCT minimization and two-machine flow shop makespan minimization.
-For the SCT problem, we proved that the surrogate converges to the regret loss as the sharpness parameter tends to zero, and empirically demonstrated substantial improvements over predict-then-optimize, SPO+, and LTR baselines on both synthetic and real-world hospital scheduling data.
 Our results highlight the value of decision-aware surrogates that redistribute prediction errors in a way that benefits downstream scheduling objectives, rather than focusing solely on pointwise accuracy.
 The framework is particularly attractive for problems whose deterministic variants are tractable and structurally interpretable, enabling surrogates that faithfully mirror optimal policies.
 
