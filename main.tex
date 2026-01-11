@@ -77,7 +77,7 @@ We propose a surrogate-based framework for smart predict-and-schedule that views
 such as shortest-processing-time (SPT), earliest-due-date (EDD), FIFO, and Johnson's rule,
 as collections of critical decisions, and attaches to each decision a smooth sigmoid-based penalty weighted by its contribution to the scheduling objective.
 We instantiate this framework on two classical problems: (i) single-machine scheduling with the sum of completion times (SCT) objective, where misordered job pairs are weighted by their SCT increase, and (ii) the two-machine flow shop with makespan minimization, where misclassified groups and misordered jobs are weighted by the corresponding Johnson swap costs.
-Experiments on synthetic SCT benchmarks and a real-world outpatient scheduling dataset from a cancer hospital show that our surrogate-based approach consistently outperforms the baselines across a vast majority of problem instances.
+Experiments on synthetic SCT benchmarks and a real-world outpatient scheduling dataset from a cancer hospital show that our approach reduces relative scheduling error by 10--34\% compared to state-of-the-art baselines and achieves the best performance in 11 out of 12 months.
 \end{abstract}
 
 \section{Introduction}
@@ -105,8 +105,8 @@ We further show how the same principles extend to a two-machine flow shop with m
 Across both problems, the resulting surrogates retain the interpretability of classical algorithms while enabling flexible learning with neural networks.
 
 To validate our approach, we conduct extensive experiments on synthetic and real-world datasets.
-On synthetic instances of the SCT problem, our surrogate consistently outperforms SPO+, logistic rank-loss, and mean-squared-error baselines, especially under high noise and large duration variability.
-On a large-scale outpatient scheduling dataset from a cancer hospital, our method achieves the lowest relative SCT error across most months, demonstrating robustness in a noisy, feature-limited environment.
+On synthetic instances of the SCT problem, our surrogate remains stable even under extreme noise, whereas SPO+ diverges.
+On a large-scale outpatient scheduling dataset from a cancer hospital, our method achieves the lowest relative SCT error in 11 out of 12 months, outperforming mean-squared-error and ranking baselines by roughly 10\% and SPO+ by 34\%.
 
 Our contributions can be summarized as follows:
 \begin{enumerate}
