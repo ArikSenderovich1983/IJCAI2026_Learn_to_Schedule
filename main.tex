@@ -810,7 +810,7 @@ SIG      & \textbf{0.30} & 0.29 & \textbf{0.31} & \textbf{0.29} & \textbf{0.33} 
 \end{tabular}
 \end{table}
 
-Figure~\ref{fig:real-data-jan} shows the training trajectory for a representative month (January).
+Figure~\ref{fig:real-data-jan} shows the training trajectory for a representative month (January). Our approach consistently converges to a lower, and more stable error, confirming that weighting decision errors by their specific SCT impact yields significant gains over general ranking or regression objectives.
 
 \begin{figure}[t]
     \centering
@@ -820,7 +820,7 @@ Figure~\ref{fig:real-data-jan} shows the training trajectory for a representativ
     \label{fig:real-data-jan}
 \end{figure}
 
-Our approach consistently converges to a lower and more stable error than the baselines, confirming that weighting decision errors by their specific SCT impact yields significant gains over generic ranking or regression objectives.
+
 
 \section{Related Work}
 \label{sec:related_work}
@@ -849,9 +849,9 @@ Our approach adapts the LTR mechanism but weights each decision by its precise c
 This paper introduced a surrogate-based framework for predict-and-optimize that leverages deterministic, polynomial-time algorithms to construct smooth learning objectives aligned with decision regret.
 Within this framework, we developed sigmoid-based surrogates for two canonical scheduling problems under uncertainty: single-machine SCT minimization and two-machine flow shop makespan minimization.
 For the SCT problem, we proved that the surrogate converges to the regret loss as the sharpness parameter tends to zero, and empirically demonstrated substantial improvements over predict-then-optimize, SPO+, and LTR baselines on both synthetic and real-world hospital scheduling data.
-
 Our results highlight the value of decision-aware surrogates that redistribute prediction errors in a way that benefits downstream scheduling objectives, rather than focusing solely on pointwise accuracy.
 The framework is particularly attractive for problems whose deterministic variants are tractable and structurally interpretable, enabling surrogates that faithfully mirror optimal policies.
+
 Future work will extend our approach to more complex scheduling scenarios (e.g., multi-machine and job shop problems), and explore applications beyond scheduling, such as routing, matching, and resource allocation.
 
 \bibliographystyle{named}
