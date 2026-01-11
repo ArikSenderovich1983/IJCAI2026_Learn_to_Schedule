@@ -114,10 +114,8 @@ Our contributions can be summarized as follows:
     \item We instantiate this framework on two classical scheduling problems: (i) single-machine SCT minimization and (ii) two-machine flow shop makespan minimization, deriving problem-specific surrogates that weight each decision by its contribution to SCT or makespan.
 %    \item We provide theoretical guarantees for the SCT surrogate, including differentiability and convergence to regret as the sigmoid sharpness parameter tends to zero, and show how algorithmic structure (e.g., Johnson's rule and associated swap costs) guides surrogate design in the flow shop setting.
     \item We empirically evaluate our approach on synthetic SCT benchmarks and a real-world hospital scheduling dataset, demonstrating consistent improvements over state-of-the-art SPO, learn-to-rank, and predict-then-optimize baselines.
-\end{enumerate}
-
-The remainder of the paper is organized as follows.
-Section~\ref{sec:framework} introduces our general surrogate-based predict-and-schedule framework.
+\end{enumerate} The remainder of the paper is organized as follows.
+Section~\ref{sec:framework} introduces our general predict-and-schedule framework.
 Sections~\ref{sec:problem1} and~\ref{sec:flowshop} instantiate this framework for single-machine SCT minimization and two-machine flow shop makespan minimization, respectively.
 Section~\ref{sec:evaluation} presents experimental results on synthetic benchmarks, followed by a real-world case study in patient scheduling in Section~\ref{sec:case_study}.
 We discuss related work in Section~\ref{sec:related_work} and conclude in Section~\ref{sec:conclusion}.
@@ -801,13 +799,10 @@ To reduce training time, we employ a pairwise sampling strategy rather than comp
 
 \paragraph{Evaluation metric.}
 Models were evaluated on the test set by comparing the SCT and Makespan achieved predicted job orderings against those of the true optimal order, with results averaged over ten runs.
-The optimal schedule is represent
+The optimal schedule is represent and SPT and Johnson schedule under true processing times for Problem~1 and ~2, respectively.
 
-For Problem~1 the optimal order results by applying SPT rule while for Problem~2 by Johnson 
 
-\paragraph{Planned evaluation.}
-The primary metric will be relative makespan, comparing the schedule induced by learned predictions against the optimal Johnson schedule under true processing times.
-We expect the Johnson-aligned surrogate in Section~\ref{sec:flowshop} to outperform baselines, particularly under high noise, by directly encoding the structure of the deterministic optimal policy.
+%We expect the Johnson-aligned surrogate in Section~\ref{sec:flowshop} to outperform baselines, particularly under high noise, by directly encoding the structure of the deterministic optimal policy.
 
 
 \begin{figure}[t]
