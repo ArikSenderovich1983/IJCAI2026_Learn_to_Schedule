@@ -772,71 +772,21 @@ We evaluate the proposed sigmoid-based surrogate loss on a real-world dataset
 from \textit{DayHospital}, a U.S.\ cancer clinic. We describe the setting,
 experimental protocol, and results.
 
-\subsection{Case Description: Scheduling in DayHospital}
+\subsection{Case Description and Setup}
 
-DayHospital is an outpatient clinic where patients arrive in the morning and
-complete their visits later in the day. Visits may include a blood draw, an
-examination, and chemotherapy infusion. We focus on the \emph{examination}
-stage: doctors act as single-server machines and patients are jobs, with known
-appointment (arrival) times but \emph{uncertain} exam durations.
-The goal is to sequence exams to reduce congestion, as duration uncertainty can
-create large downstream delays.
+We evaluate our method on real-world data from \textit{DayHospital}, a U.S.\ cancer clinic. The problem is to sequence patient exams to minimize congestion (SCT), where appointment times are known but exam durations are uncertain.
+The dataset spans two months (January and November 2021) and contains approximately 201,000 patient pathways derived from RTLS traces.
+For each exam, we extract a feature vector \(x_i\) comprising \texttt{floor\_id}, \texttt{scheduled\_time}, \texttt{department}, \texttt{scheduled\_duration\_min}, \texttt{diagnosis}, \texttt{appointment\_type}, and a \texttt{link\_flag} for subsequent infusions.
+To simulate deployment, we use a rolling-horizon split: training on the first three weeks of each month and evaluating on the fourth.
 
-\subsection{Experimental Setup}
-
-\paragraph{Dataset.} 
-We used two months of operational data from \textit{DayHospital} (January and
-November 2021). Data sources include:
-\begin{itemize}
-    \item \emph{Real-Time Location System (RTLS)} traces (3-second resolution).
-    \item \emph{Appointment data} with scheduled times.
-\end{itemize}
-The dataset contains approximately 201,000 patient pathways. For each observed
-patient at a station, we extract arrival, service-start, and service-completion
-timestamps. After preprocessing, we focus on \textit{Exam} appointments. The
-goal is to predict true durations \(y_i\) from features \(x_i\) in a way that
-improves SCT under sequencing.
-
-Feature vectors \(x_i\) include \texttt{floor\_id}, \texttt{scheduled\_time},
-\texttt{department}, \texttt{scheduled\_duration\_min}, \texttt{diagnosis},
-\texttt{appointment\_type}, and \texttt{link\_flag} (whether the exam is
-followed by infusion).
-
-To reflect deployment, we split by calendar time: for each month, train on the
-first three weeks and evaluate on the fourth week (rolling-horizon generalization).
-
-\paragraph{Benchmark methods.}
-We evaluated our proposed approach against several benchmark loss functions commonly used in predictive scheduling tasks:
-\begin{itemize}
-    \item \emph{Rank Loss}: pairwise ranking via negative log-likelihood of correct comparisons.
-    
-    \item \emph{Mean Squared Error (MSE)}: standard regression loss; a predict-then-optimize baseline~\cite{shahabikargar2014predicting}.
-    
-    \item \emph{SPO+}: A convex surrogate loss for predict-and-optimize problems \cite{elmachtoub2022smart}, which approximates the scheduling regret through a differentiable upper bound on the decision loss.
-\end{itemize}
-
-\paragraph{Evaluation metric.}
-As in the synthetic experiments, the evaluation objective for the real-world data is to minimize the SCT induced by the predicted task orderings.
-For each model, predicted durations were used to sequence appointments, and the resulting SCT was computed based on the true durations.
-To facilitate comparison across months and models, we report the \emph{relative SCT error}, defined as the difference between the predicted and optimal SCT values, normalized by the optimal SCT.
-This reflects scheduling regret and matches the synthetic evaluation.
-
-\subsection{Experimental Procedure}
-
-Models are feedforward neural networks with two hidden layers (ReLU) and a
-Softplus output. All methods use Adam (\(5\times10^{-3}\) learning rate,
-\(10^{-4}\) weight decay) with early stopping. We train up to 2000 iterations
-and evaluate relative SCT error every 50 steps by sequencing with predicted
-durations \(\hat{y}_i\) and comparing SCT against the optimal order under true
-durations \(y_i\). SPO+ uses a mini-batch surrogate with a differentiable LP.
-All methods share the same splits and comparable model capacity.
+We compare our sigmoid-based surrogate against three baselines: (i) \emph{Rank Loss} (pairwise negative log-likelihood), (ii) \emph{Mean Squared Error (MSE)} (predict-then-optimize), and (iii) \emph{SPO+} (a convex decision-aware surrogate).
+All models are two-layer feedforward neural networks trained with Adam.
+Performance is measured by the \emph{relative SCT error}, defined as the normalized difference between the SCT of the predicted schedule and the optimal SCT under true durations.
 
 \subsection{Results}
 
-To assess the robustness of each method across time, we evaluated model performance on monthly datasets spanning January to December 2021.
-Table~\ref{tab:monthly-sct} reports the final relative SCT error per method (ours is denoted SIG for sigmoid-based) in each month.
-The bottom row presents the average SCT error across the year.
-Our sigmoid-based method consistently outperforms baselines (except August 2021), achieving the lowest average error and demonstrating stable performance across different months.
+Table~\ref{tab:monthly-sct} reports the relative SCT error across the full year (January--December 2021).
+Our sigmoid-based method achieves the lowest error in 11 out of 12 months, with an average error of \textbf{0.316}, compared to 0.353 for MSE, 0.338 for LTR, and 0.476 for SPO+.
 
 \begin{table}[t]
 \centering
@@ -862,8 +812,7 @@ SIG      & \textbf{0.30} & 0.29 & \textbf{0.31} & \textbf{0.29} & \textbf{0.33} 
 \end{tabular}
 \end{table}
 
-As a representative example, Figure~\ref{fig:real-data-jan} shows the relative
-SCT error over training iterations for January 2021.
+Figure~\ref{fig:real-data-jan} shows the training trajectory for a representative month (January).
 
 \begin{figure}[t]
     \centering
@@ -873,10 +822,7 @@ SCT error over training iterations for January 2021.
     \label{fig:real-data-jan}
 \end{figure}
 
-Overall, the sigmoid-based surrogate achieves the lowest SCT error. Rank Loss is
-competitive early but plateaus higher; MSE underperforms, confirming that
-prediction accuracy alone is insufficient; SPO+ converges but stabilizes at
-higher error.
+Our approach consistently converges to a lower and more stable error than the baselines, confirming that weighting decision errors by their specific SCT impact yields significant gains over generic ranking or regression objectives.
 
 \section{Related Work}
 \label{sec:related_work}
