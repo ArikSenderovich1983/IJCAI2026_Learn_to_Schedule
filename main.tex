@@ -77,7 +77,7 @@ We propose a surrogate-based framework for smart predict-and-schedule that views
 such as shortest-processing-time (SPT), earliest-due-date (EDD), FIFO, and Johnson's rule,
 as collections of critical decisions, and attaches to each decision a smooth sigmoid-based penalty weighted by its contribution to the scheduling objective.
 We instantiate this framework on two classical problems: (i) single-machine scheduling with the sum of completion times (SCT) objective, where misordered job pairs are weighted by their SCT increase, and (ii) the two-machine flow shop with makespan minimization, where misclassified groups and misordered jobs are weighted by the corresponding Johnson swap costs.
-Experiments on synthetic SCT benchmarks and a real-world outpatient scheduling dataset from a cancer hospital show that our approach reduces relative scheduling error by 10--34\% compared to state-of-the-art baselines and achieves the best performance in 11 out of 12 months.
+Experiments on synthetic SCT benchmarks and a real-world outpatient scheduling dataset from a cancer hospital show that our approach reduces relative scheduling error by 10--34\% compared to state-of-the-art baselines and achieves the best performance for the majority of case study months.
 \end{abstract}
 
 \section{Introduction}
@@ -198,15 +198,14 @@ Let $\mathcal{A}$ determine a schedule through a finite set of \emph{critical
 decisions} $\mathcal{K}$, such as:
 (i) pairwise precedence comparisons (e.g., SPT/EDD/FIFO-style ordering
 decisions), (ii) threshold tests, or (iii) group assignments (e.g., Johnson's
-partition into $G_1$ and $G_2$).
-Crucially, the elements of $\mathcal{K}$ need not be job pairs: some rules
-are per-job classification decisions, while others are comparisons.
+partition into two groups).
+Some rules in $\mathcal{K}$
+are per-job classification decisions, while others are pairwise job comparisons.
 
 \paragraph{(b) Sigmoid relaxations.}
 For each critical decision $d \in \mathcal{K}$, define a signed \emph{decision
 score} $s_d(\omega;x)$ produced by the predictor, such that the sign of
-$s_d$ encodes the model's preferred outcome for $d$ (e.g., ``$i$ before $j$''
-or ``job $i \in G_1$'').
+$s_d$ encodes the model's preferred outcome for $d$ (e.g., ``$i$ before $j$'').
 We then replace the hard, non-differentiable decision indicator by a smooth
 sigmoid approximation.
 To ensure the surrogate penalizes the \emph{wrong} outcome (rather than
@@ -328,11 +327,11 @@ Section~\ref{sec:case_study}, where our learning objective is designed to
 improve the resulting patient sequencing rather than pointwise duration
 accuracy.
 
-In the remainder of the paper, we instantiate the framework on two canonical
-problems: single-machine SCT minimization (Problem~1) and two-machine flow shop
-makespan minimization (Problem~2).
-For each, we derive a problem-specific surrogate by specifying (i) the set of
-critical decisions $\mathcal{K}$ and (ii) the weights $\phi_d$.
+% In the remainder of the paper, we instantiate the framework on two canonical
+% problems: single-machine SCT minimization (Problem~1) and two-machine flow shop
+% makespan minimization (Problem~2).
+% For each, we derive a problem-specific surrogate by specifying (i) the set of
+% critical decisions $\mathcal{K}$ and (ii) the weights $\phi_d$.
 
 \section{Problem 1: Single-Machine Scheduling}
 \label{sec:problem1}
@@ -669,7 +668,7 @@ In the absence of established benchmarks, these two datasets support systematic 
 \begin{itemize}
     \item \emph{Linear model:} \( f(x) = \mathbf{xw} \), where \(\mathbf{w}\) is a randomly generated weight vector, and \(\mathbf{x}\) consists of features uniformly sampled from \([0, 1]\).
     
-    \item \emph{Nonlinear model (Problem~2):} A nonlinear combination is computed as:
+    \item \emph{Nonlinear model (Problem~1):} A nonlinear combination is computed as:
     \[
     g(x) = 3x_1^2 + 4.0\sin(2\pi x_2) + 3x_3x_4 + 2x_5^3,
     \]
@@ -761,6 +760,28 @@ SPO+ & 17.746 & 19.784 & 16.416 & 22.234 & 19.753 & - \\
 \end{table}
 
 
+\begin{table}[t]
+\centering
+\resizebox{0.95\columnwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+\multirow{3}{*}{Method} & \multicolumn{8}{c}{Dataset Size} \\
+                         & \multicolumn{2}{c}{5000} & \multicolumn{2}{c}{10000} & \multicolumn{2}{c}{50000} & \multicolumn{2}{c}{100000} \\
+                         & SCT & Time & SCT & Time & SCT & Time & SCT & Time \\
+\midrule
+MSE         & 3.027 & 2.794s & 2.798 & 2.719s & 2.767 & 9.685s & 3.037 & 21.624s \\
+Rank Loss   & 2.789 & 25.121s & 2.924 & 30.814s & 2.873 & 35.796s & 2.974 & 45.054s \\
+Regret Loss & \textbf{2.605} & 28.646s & \textbf{2.793} & 33.265s & 2.879 & 41.57s & \textbf{2.920} & 52.593s \\
+SPO+        & 21.276 & 72,2s & 12.356 & 71.981s & 11.591 & 65.29s & 20.757 & 72.5s \\
+\bottomrule
+\end{tabular}}
+\caption{SCT errors and training times across different dataset sizes.}
+\label{tab:linear}
+\end{table}
+
+
+
+
 
 
 \section{Case Study: Patient Scheduling}
@@ -847,7 +868,7 @@ Our approach adapts the LTR mechanism but weights each decision by its precise c
 \label{sec:conclusion}
 
 This paper introduced a surrogate-based framework for predict-and-optimize that exploits the critical-decision structure of polynomial-time algorithms.
-We instantiated this framework for single-machine SCT and two-machine flow shop problems, deriving smooth surrogates that provably converge to decision regret (see Appendix).
+We instantiated this framework for single-machine SCT and two-machine flow shop problems, deriving smooth surrogates that provably converge to decision regret.
 Experiments confirm that this approach yields robust schedules even under high noise, outperforming state-of-the-art baselines by significant margins in both synthetic benchmarks and a real-world hospital case study.
 Future work will extend this decision-aware paradigm to complex multi-stage scheduling and broader combinatorial optimization tasks.
 
