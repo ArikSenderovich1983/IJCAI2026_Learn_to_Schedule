@@ -788,13 +788,19 @@ $(f_\omega(x_j) - f_\omega(x_i))$ while for Problem~2
 as $\min(\hat{p}_{i1}, \hat{p}_{j2}) -\min(\hat{p}_{j1}, \hat{p}_{i2})$.
 
 \paragraph{Implementation details.}
-The experiments were implemented in Python. Specifically, each baseline was trained using the same two-hidden-layer neural network architecture with the PyTorch library and the same number of iterations. Datasets were generated according to the described models, with varying noise levels $\eta$, to evaluate the models’ robustness to prediction uncertainty. Each dataset was normalized and split into 70\% training, 10\% validation, and 20\% test subsets. For time reasons in the
+The experiments were implemented in Python. Specifically, each baseline was trained using the same two-hidden-layer neural network architecture with the PyTorch library and the same number of iterations. Datasets were generated according to the described models, with varying noise levels $\eta$, to evaluate the models’ robustness to prediction uncertainty. Each dataset was normalized and split into 70\% training, 10\% validation, and 20\% test subsets. 
 
-\paragraph{Evaluation metric.}
-
-Models were evaluated on the test set by comparing the SCT and Makespan achieved predicted job orderings against those of the true optimal order, with results averaged over ten runs. To be general and 
 To reduce training time, we employ a pairwise sampling strategy rather than comparing all possible pairs of elements. This approach is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwaise_number}.
 
+\paragraph{Evaluation metric.}
+Models were evaluated on the test set by comparing the SCT and Makespan achieved predicted job orderings against those of the true optimal order, with results averaged over ten runs.
+The optimal schedule is represent
+
+For Problem~1 the optimal order results by applying SPT rule while for Problem~2 by Johnson 
+
+\paragraph{Planned evaluation.}
+The primary metric will be relative makespan, comparing the schedule induced by learned predictions against the optimal Johnson schedule under true processing times.
+We expect the Johnson-aligned surrogate in Section~\ref{sec:flowshop} to outperform baselines, particularly under high noise, by directly encoding the structure of the deterministic optimal policy.
 
 
 \begin{figure}[t]
@@ -848,10 +854,6 @@ SPO+ & 17.746 & 19.784 & 16.416 & 22.234 & 19.753 & - \\
 Single machine, and then for 2-flowshop.
 
 
-
-\paragraph{Planned evaluation.}
-The primary metric will be relative makespan, comparing the schedule induced by learned predictions against the optimal Johnson schedule under true processing times.
-We expect the Johnson-aligned surrogate in Section~\ref{sec:flowshop} to outperform baselines, particularly under high noise, by directly encoding the structure of the deterministic optimal policy.
 
 \section{Case Study: Patient Scheduling}
 \label{sec:case_study}
