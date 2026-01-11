@@ -92,7 +92,7 @@ This mismatch between deterministic models and stochastic environments motivates
 Smart predict-and-optimize (SPO) methods offer one such paradigm~\cite{elmachtoub2022smart}.
 Rather than learning to predict task parameters in isolation, SPO couples prediction with downstream optimization by minimizing empirical \emph{decision regret}: the difference between the objective value of the decision induced by learned predictions and that of the optimal decision under the true parameters.
 Despite their conceptual appeal, SPO methods face two major challenges in practice.
-First, the regret objective is often non-differentiable and highly non-convex, making gradient-based learning difficult.
+First, the regret objective is often non-differentiable, making gradient-based learning difficult.
 Second, even when differentiable surrogates such as SPO+ are available~(\citeauthor{elmachtoub2020decisiontrees}~\citeyear{elmachtoub2020decisiontrees}), they may be poorly aligned with the structure of specific scheduling rules and can exhibit unstable training behaviour, especially when small changes in predictions lead to large changes in the optimal schedule.
 
 In this paper, we develop a surrogate-based framework that addresses these challenges for a broad class of polynomial-time scheduling algorithms.
@@ -159,7 +159,7 @@ C(\pi(\hat{\theta});\theta^\star)
 C(\pi(\theta^\star);\theta^\star),
 \end{equation}
 which is generally non-differentiable with respect to~$\omega$.
-The framework 
+The four step framework presented 
 below addresses this challenge by exploiting problem structure.
 
 \noindent\textbf{Step 1: Identify Unknown Parameters (or Decision-Relevant Scores).}
@@ -263,7 +263,8 @@ the critical decisions; these are passed into the polynomial-time algorithm:
 We note that this approach can, in principle, be applied beyond scheduling to routing, assignment, and other
 combinatorial optimization problems in which the deterministic case is
 tractable and structurally interpretable.
-In this paper, we show an instantiation for two well-known scheduling problems
+In this paper, we focus on scheduling and show an instantiation
+of the framework for two well-known scheduling problems
 under uncertainty.
 
 % \subsection{Implications for Scheduling Problems}
@@ -795,6 +796,7 @@ as $\min(\hat{p}_{i1}, \hat{p}_{j2}) -\min(\hat{p}_{j1}, \hat{p}_{i2})$.
 \paragraph{Implementation details.}
 The experiments were implemented in Python. Specifically, each baseline was trained using the same two-hidden-layer neural network architecture with the PyTorch library and the same number of iterations. Datasets were generated according to the described models, with varying noise levels $\eta$, to evaluate the models’ robustness to prediction uncertainty. Each dataset was normalized and split into 70\% training, 10\% validation, and 20\% test subsets. 
 
+
 To reduce training time, we employ a pairwise sampling strategy rather than comparing all possible pairs of elements. This approach is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwaise_number}.
 
 \paragraph{Evaluation metric.}
@@ -814,7 +816,6 @@ The optimal schedule is represent and SPT and Johnson schedule under true proces
 
 
 \subsection{Results}
-
 
 \begin{table}[t]
 \centering
@@ -853,7 +854,6 @@ SPO+ & 17.746 & 19.784 & 16.416 & 22.234 & 19.753 & - \\
 \label{tab:linear}
 \end{table}
 
-Single machine, and then for 2-flowshop.
 
 
 
