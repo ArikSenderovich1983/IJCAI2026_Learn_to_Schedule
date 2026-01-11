@@ -191,6 +191,8 @@ To train a neural network via gradient
 descent, we replace this mapping with a differentiable surrogate loss
 $L_{\mathrm{surr}}$ that approximates the regret in
 (\ref{eq:regret-general}).
+Unlike generic SPO approaches that treat the optimization oracle as a black box (e.g., via convex relaxations), our framework explicitly models the critical decision boundaries of the polynomial-time algorithm.
+This ``white-box'' approach bridges the gap between learning-to-rank and decision-focused learning.
 The construction follows three principles:
 
 \paragraph{(a) Structural decomposition.}
@@ -214,12 +216,8 @@ parameters.
 Specifically, define a \emph{signed correctness margin}
 $m_d(\omega;x,\theta^\star)$ such that $m_d>0$ when the model agrees with the
 ground-truth decision for $d$ (with margin) and $m_d<0$ otherwise.
-In other words, $s_d$ is the model's \emph{raw} score for decision $d$, while
-$m_d$ is the same score \emph{re-oriented} so that its sign always encodes
-\emph{correctness}. Concretely, if under $\theta^\star$ the correct outcome for
-$d$ corresponds to ``$s_d>0$,'' then $m_d=s_d$; if the correct outcome
-corresponds to ``$s_d<0$,'' then $m_d=-s_d$.
-(For example, if $s_d = \hat{\theta}_i - \hat{\theta}_j$ represents a precedence score where positive means ``$i$ before $j$,'' but the ground truth requires $j$ before $i$, we set $m_d = -s_d$ so that $m_d > 0$ signifies the correct decision.)
+In other words, $s_d$ is the model's \emph{raw} score, while $m_d$ is the \emph{oriented correctness margin}: we set $m_d$ such that $m_d > 0$ if and only if the decision implied by $s_d$ matches the ground truth.
+For example, if $s_d$ predicts ``$i$ before $j$'' but the true order is $j$ before $i$, we set $m_d = -s_d$.
 We then use the smooth misclassification indicator
 \[
 \sigma\!\left( -\frac{m_d(\omega;x,\theta^\star)}{\lambda} \right),
@@ -386,42 +384,22 @@ In Section~\ref{sec:framework} notation, this corresponds to computing
 $\hat{\theta}_i=f_{\omega^\star_{\mathrm{MSE}}}(x_i)$ and then
 $\hat{\pi}=\mathcal{A}_{\mathrm{SPT}}(\hat{\theta})$.
 
-In other words, prediction errors are unavoidable, but not all impact the task order in scheduling.
-MSE treats all errors the same, even though only those that change task order impact the SCT objective.
-Thus, minimizing MSE may not effectively reduce SCT, as it overlooks the distinction between harmless and harmful errors.
-
-To better understand this, consider a sequencing of tasks where the task placed in position \(k\) has duration \(y_k\).
-The total SCT can be expressed as:
-\begin{equation}
-\mathrm{SCT} = \sum_{k=1}^n (n+1-k) \, y_k.
-\end{equation}
-
-Swapping two tasks at positions \(i < j\) alters their contribution by:
+However, minimizing MSE ignores the structure of the scheduling objective.
+For SCT, the cost of a prediction error depends entirely on whether it alters the task sequence.
+Consider a sequencing where the task in position $k$ has duration $y_k$. The total SCT is $\sum_{k=1}^n (n+1-k) \, y_k$.
+Swapping two tasks at positions $i < j$ alters the objective by:
 \begin{align}
-R_{i,j} &= \big[(n{+}1{-}i)\, y_j + (n{+}1{-}j)\, y_i\big] \nonumber \\
-       &\quad - \big[(n{+}1{-}i)\, y_i + (n{+}1{-}j)\, y_j\big] \nonumber \\
+R_{i,j} &= \big[(n{+}1{-}i)\, y_j + (n{+}1{-}j)\, y_i\big] - \big[(n{+}1{-}i)\, y_i + (n{+}1{-}j)\, y_j\big] \nonumber \\
        &= (j - i)(y_j - y_i).
 \end{align}
-
-A pair \((i,j)\) is said to be \emph{misordered} if \(y_i < y_j\) but the schedule places \(y_i\) after \(y_j\), leading to an increase in SCT of \((j-i)(y_j - y_i)\).
-Clearly this conditional error, which represents the actual cost of mispredicting task durations, has a different structure from the MSE, which represents the incurred cost of mispredicting task durations.
-To solve this problem, we aim to find a loss function for the prediction phase, different from MSE, that minimizes the actual cost of mispredicting task durations.
-
-%\subsection{Regret Formulation for SCT}
-
-Accordingly, we define the smart predict-and-schedule problem in terms of regret.
-
+We therefore seek to minimize the \emph{decision regret}, defined as the total cost of all misordered pairs:
 \begin{problem}{Regret minimization in SCT} \label{prob:problem1}
-Find $f_\omega$ that minimizes the expected regret:
+Find $f_\omega$ that minimizes:
 \begin{equation} \label{eq:smartsched}
 L_{\text{regret}} = \sum_{\substack{\theta_i^\star < \theta_j^\star}} R_{i,j} \cdot \max(0, \text{sign}(f_\omega(x_i) - f_\omega(x_j))).
 \end{equation}
-\end{problem} For example, consider two tasks \(i\) and \(j\) with true durations \(y_i < y_j\).
-If \(f_\omega(x_i) > f_\omega(x_j)\), the tasks are misordered, increasing the SCT.
-The regret-based loss directly targets such misorderings by reducing their probability.
-This means that even large prediction errors may be tolerated if they are symmetric, regardless of their impact on task ordering.
-In contrast, regret-based models focus explicitly on getting the order right, yielding better scheduling decisions even when prediction accuracy is imperfect. Yet, directly optimizing regret is challenging due to non-differentiability and
-the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}.
+\end{problem}
+Directly optimizing $L_{\text{regret}}$ is challenging due to non-differentiability and the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}.
 We therefore derive a differentiable surrogate loss that targets the critical
 pairwise precedence decisions of SPT and weights each decision by its SCT
 impact.
@@ -851,7 +829,7 @@ Our work lies within three literature strands: smart predict-and-optimize, domai
 \noindent\textbf{Smart predict-and-optimize.}
 Standard predict-then-optimize approaches (e.g.,~\cite{shahabikargar2014predicting}) typically minimize prediction error (MSE), ignoring downstream decision impact.
 The SPO framework~\cite{elmachtoub2022smart} addresses this by minimizing decision regret directly, but its non-convexity necessitates surrogates like SPO+.
-While extensions exist---SPO Trees~\cite{elmachtoub2020decisiontrees} for interpretability, relaxation-based methods for knapsack~\cite{Mandi2020}, or RL-based constrained optimization~\cite{Silvestri2024} as they often assume deterministic parameters or struggle with nonlinear scheduling dynamics.
+While extensions exist---SPO Trees~\cite{elmachtoub2020decisiontrees} for interpretability, relaxation-based methods for knapsack~\cite{Mandi2020}, or RL-based constrained optimization~\cite{Silvestri2024}---they often assume deterministic parameters or struggle with nonlinear scheduling dynamics.
 In contrast, our framework directly exploits the critical-decision structure of polynomial-time rules, enabling stable, differentiable learning for complex scheduling objectives.
 
 \noindent\textbf{Semi- and domain-specific SPO.}
