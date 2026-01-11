@@ -244,6 +244,7 @@ on the scheduling objective (e.g., SCT increase or makespan increase).
 As $\lambda \to 0$, the surrogate approaches a hard penalty on incorrect
 decisions, while for $\lambda>0$ it remains smooth and trainable with gradient
 descent.
+Key theoretical properties of this surrogate, including differentiability and convergence to regret, are analyzed in the Technical Appendix (Section~\ref{sec:appendix}).
 
 \noindent\textbf{Step 4: Train the Prediction Model.} The neural network $f_\omega$ is trained by minimizing the surrogate loss:
 \[
@@ -469,95 +470,6 @@ When \(f_\omega\) preserves correct orderings, the sigmoid term remains near zer
 compute $\hat{\theta}_i=f_{\omega^\star}(x_i)$ and return
 $\hat{\pi}=\mathcal{A}_{\mathrm{SPT}}(\hat{\theta})$, i.e., the SPT schedule
 obtained by sorting tasks by $\hat{\theta}_i$ in ascending order.
-
-% \subsubsection{Properties of the sigmoid-based surrogate}
-
-% To show the usefulness of the sigmoid-based surrogate loss function for predict and schedule, we need to show that it is differentiable and approximates the regret in the SCT problem.
-
-% The non-differentiability of the regret loss in Equation~\ref{eq:smartsched} is caused by the use of \(\max(0, \text{sign}(x))\), effectively a \(\text{ReLU}(\text{sign}(x))\) operation that is non-differentiable at \(x=0\).
-% To solve the non-differentiability problem, we replace this with the sigmoid function \(\sigma(x)\) as a smooth approximation, enabling gradient-based optimization.
-% Several properties of the sigmoid-based surrogate support its effectiveness:
-
-% \begin{property}[Differentiability and smooth gradients]
-% \label{prop:differentiability}
-% The surrogate loss \(L_{\text{sigmoid}}\) is infinitely differentiable.
-% The derivative of the sigmoid function is:
-% \[
-% \sigma'(u) = \sigma(u)(1-\sigma(u)).
-% \]
-% \end{property}
-% \noindent Differentiability ensures stable gradient-based optimization throughout training, which allows us to train a neural network to solve
-% the scheduling problem via an SPO-like method.
-
-% \begin{property}[Tunable sensitivity via \(\lambda\)]
-% The steepness of the decision boundary is controlled by \(\lambda>0\).
-% \end{property}
-% \begin{proof}
-% The derivative \(\sigma'(u)\) is maximized near \(u=0\).
-% Smaller \(\lambda\) values sharpen the sigmoid, increasing sensitivity to small misorderings.
-% \end{proof}
-% \noindent The hyperparameter \(\lambda\) thus offers a mechanism to fine-tune model responsiveness to near-boundary predictions.
-% Higher $\lambda$
-% yields low penalty for misorderings, while low values of $\lambda$
-% push the objective to converge to Equation~\ref{eq:smartsched}.
-
-% \begin{property}[Order sensitivity and penalization]
-% \label{prop:order}
-% The sigmoid loss penalizes misordered task pairs.
-% \end{property}
-% \begin{proof}
-% For tasks \(i\) and \(j\) where \(y_j > y_i\), the loss contribution is:
-% \[
-% (j-i)(y_j-y_i)\,\sigma\!\Bigl(\tfrac{\hat{f}(x_i) - \hat{f}(x_j)}{\lambda}\Bigr).
-% \]
-% Correctly ordered pairs (\(\hat{f}(x_j) > \hat{f}(x_i)\)) yield negative inputs to \(\sigma\), resulting in near-zero penalties.
-% Incorrectly ordered pairs (\(\hat{f}(x_i) > \hat{f}(x_j)\)) yield positive inputs, maximizing the penalty.
-% \end{proof}
-% \noindent As \(\lambda\to\infty\), all penalties converge to a uniform value, diminishing order sensitivity.
-
-% \begin{property}[Sensitivity to small misorderings]
-% \label{prop:sensitivity}
-% The sigmoid loss penalizes near-boundary cases where \(\hat{f}(x_i) \approx \hat{f}(x_j)\).
-% \end{property}
-% \begin{proof}
-% When \(\hat{f}(x_i) \approx \hat{f}(x_j)\), the input to the sigmoid approaches zero, yielding:
-% \[
-% \sigma(0) = 0.5.
-% \]
-% Thus, pairs with uncertain ordering are still penalized, encouraging the model to separate predictions more clearly.
-% \end{proof}
-
-% Finally, we present a convergence guarantee:
-
-% \begin{theorem}[Convergence to regret loss]
-% \label{thm:lambda_impact}
-% The surrogate loss \(L_{\text{sigmoid}}\) converges to the regret loss \(L_{\text{regret}}\) as \(\lambda \to 0\).
-% \end{theorem}
-% \begin{proof}
-% As \(\lambda \to 0\), the scaled differences \((\hat{f}(x_i)-\hat{f}(x_j))/\lambda\) tend toward \(\pm\infty\), and the sigmoid function \(\sigma(u)\) converges to a step function:
-% \[
-% \sigma(u) \to 
-% \begin{cases}
-% 1, & u > 0, \\
-% 0, & u \leq 0,
-% \end{cases}
-% \]
-% thus recovering the original regret loss.
-% \end{proof}
-% \noindent These properties position the sigmoid-based surrogate as a natural fit for learning-based scheduling under uncertainty.
-
-% \subsubsection{Limitations of the sigmoid-based loss}
-
-% While effective for single-machine SCT minimization, several limitations remain.
-% First, the method has not been extended to multi-machine or distributed scheduling scenarios.
-% Handling task dependencies, release times, or resource constraints would require significant modifications.
-% Second, the hyperparameter \(\lambda\) critically influences model performance.
-% Improper selection may cause either unstable training (if \(\lambda\) is too small) or diminished order sensitivity (if \(\lambda\) is too large), necessitating careful hyperparameter tuning.
-% Third, pairwise loss computation scales quadratically with the number of tasks, which may become computationally expensive for large-scale instances.
-% Although sampling techniques can mitigate this, further work is needed to improve scalability. 
-% Finally, the underlying deterministic scheduling problem must be solvable in polynomial time; otherwise, training becomes computationally infeasible, as exact solutions used in the learning process are not efficiently obtainable.
-
-% Addressing these limitations is an important direction for future work, with the goal of broadening the applicability of surrogate-based scheduling methods to more complex and large-scale environments.
 
 \section{Problem 2: Flow Shop Scheduling}
 \label{sec:flowshop}
@@ -1014,6 +926,70 @@ Future work will extend our approach to more complex scheduling scenarios (e.g.,
 
 \bibliographystyle{named}
 \bibliography{mybibfile}
+
+\appendix
+
+\section{Technical Appendix}
+\label{sec:appendix}
+
+In this appendix, we analyze the theoretical properties of the general surrogate loss introduced in Section~\ref{sec:framework}.
+Recall that the surrogate is defined as:
+\[
+L_{\mathrm{surr}}(\omega)
+=
+\sum_{d \in \mathcal{K}}
+\phi_d(\theta^\star)\,
+\sigma\!\left(
+\frac{-m_d(\omega;x,\theta^\star)}{\lambda}
+\right).
+\]
+The following properties hold for any problem instantiation (including Problems 1 and 2), provided the decision scores $s_d$ (and thus $m_d$) are differentiable with respect to the model parameters $\omega$.
+
+\begin{property}[Differentiability and smooth gradients]
+\label{prop:differentiability}
+The surrogate loss \(L_{\mathrm{surr}}\) is infinitely differentiable with respect to $m_d$.
+The derivative of the sigmoid function component is:
+\[
+\frac{\partial \sigma(u)}{\partial u} = \sigma(u)(1-\sigma(u)),
+\]
+where $u = -m_d/\lambda$.
+\end{property}
+\noindent Differentiability ensures stable gradient-based optimization using standard backpropagation, avoiding the nondifferentiability of the raw regret.
+
+\begin{property}[Tunable sensitivity via \(\lambda\)]
+The steepness of the decision boundary is controlled by the temperature parameter \(\lambda>0\).
+\end{property}
+\begin{proof}
+The gradient magnitude is scaled by $1/\lambda$.
+Smaller \(\lambda\) values sharpen the sigmoid transition around $m_d=0$, increasing sensitivity to small correctness margins (i.e., decisions near the boundary) and approaching a step function.
+\end{proof}
+\noindent The hyperparameter \(\lambda\) thus allows fine-tuning the trade-off between optimization stability (large $\lambda$) and approximation accuracy (small $\lambda$).
+
+\begin{property}[Decision-weighted penalization]
+\label{prop:order}
+The loss penalizes incorrect critical decisions in proportion to their impact $\phi_d$.
+\end{property}
+\begin{proof}
+Consider a critical decision $d$.
+If the decision is correct ($m_d > 0$), the argument to the sigmoid is negative, $\sigma(\cdot) < 0.5$, and the penalty is small (approaching 0 as $m_d$ increases).
+If the decision is incorrect ($m_d < 0$), the argument is positive, $\sigma(\cdot) > 0.5$, and the penalty is large (approaching $\phi_d$ as $m_d$ decreases).
+Thus, the model focuses on correcting decisions with high impact $\phi_d$ (e.g., large SCT swaps or Johnson makespan costs).
+\end{proof}
+
+\begin{theorem}[Convergence to regret]
+\label{thm:lambda_impact}
+As \(\lambda \to 0\), the surrogate loss \(L_{\mathrm{surr}}\) converges to the exact decision regret $R(\hat{\theta},\theta^\star)$ (up to a constant shift or scaling depending on the specific problem definition).
+\end{theorem}
+\begin{proof}
+As \(\lambda \to 0\), the term $\sigma(-m_d/\lambda)$ converges to the indicator function $\mathbb{I}[m_d < 0]$ (assuming $m_d \neq 0$).
+The loss becomes:
+\[
+\lim_{\lambda \to 0} L_{\mathrm{surr}} = \sum_{d \in \mathcal{K}} \phi_d(\theta^\star) \cdot \mathbb{I}[\text{decision } d \text{ is incorrect}].
+\]
+By construction (Step 3a and 3c), $\phi_d$ represents the cost contribution of an incorrect decision $d$.
+In Problem 1, this sum is exactly the SCT regret (sum of $R_{i,j}$ for misordered pairs).
+In Problem 2, it approximates the makespan regret via the aggregated Johnson swap costs.
+\end{proof}
 
 \end{document}
 
