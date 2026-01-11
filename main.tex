@@ -199,8 +199,8 @@ decisions} $\mathcal{K}$, such as:
 (i) pairwise precedence comparisons (e.g., SPT/EDD/FIFO-style ordering
 decisions), (ii) threshold tests, or (iii) group assignments (e.g., Johnson's
 partition into $G_1$ and $G_2$).
-Crucially, the elements of $\mathcal{K}$ need not be job pairs: in some rules
-they are per-job classification decisions, and in others they are comparisons.
+Crucially, the elements of $\mathcal{K}$ need not be job pairs: some rules
+are per-job classification decisions, while others are comparisons.
 
 \paragraph{(b) Sigmoid relaxations.}
 For each critical decision $d \in \mathcal{K}$, define a signed \emph{decision
@@ -795,7 +795,6 @@ as $\min(\hat{p}_{i1}, \hat{p}_{j2}) -\min(\hat{p}_{j1}, \hat{p}_{i2})$.
 
 \paragraph{Implementation details.}
 The experiments were implemented in Python. Specifically, each baseline was trained using the same two-hidden-layer neural network architecture with the PyTorch library and the same number of iterations. Datasets were generated according to the described models, with varying noise levels $\eta$, to evaluate the models’ robustness to prediction uncertainty. Each dataset was normalized and split into 70\% training, 10\% validation, and 20\% test subsets. 
-
 
 To reduce training time, we employ a pairwise sampling strategy rather than comparing all possible pairs of elements. This approach is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwaise_number}.
 
