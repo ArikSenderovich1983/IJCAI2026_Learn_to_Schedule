@@ -679,7 +679,7 @@ as $\min(\hat{p}_{i1}, \hat{p}_{j2}) -\min(\hat{p}_{j1}, \hat{p}_{i2})$.
 
 \paragraph{Implementation details.}
 The experiments were implemented in Python. Specifically, each baseline was trained using the same two-hidden-layer neural network architecture with the PyTorch library and the same number of iterations. Datasets were generated according to the described models, with varying noise levels $\eta$, to evaluate the models’ robustness to prediction uncertainty. Each dataset was normalized and split into 70\% training, 10\% validation, and 20\% test subsets. 
-Since we aim to address a wider range of scheduling problems in terms of problem size, we train a general predictive model that is independent of the number of jobs in the input schedule. To achieve this, during the training phase, the neural network schedules the entire training set. Considering all possible combinations of job sets of different lengths is infeasible; therefore, we adopt an approximation by sampling pairwise combinations. Moreover, we show that sampling only a subset of all possible pairs is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwaise_number}.
+
 
 \paragraph{Evaluation metric.}
 Models were evaluated on the test set by comparing the SCT and Makespan achieved predicted job orderings against those of the true optimal order, with results averaged over ten runs.
@@ -687,14 +687,6 @@ The optimal schedule is represent and SPT and Johnson schedule under true proces
 
 
 %We expect the Johnson-aligned surrogate in Section~\ref{sec:flowshop} to outperform baselines, particularly under high noise, by directly encoding the structure of the deterministic optimal policy.
-
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.45\textwidth]{new_plot/analysis_number_of_pairs.png}
-    \caption{}
-    \label{fig:pairwaise_number}
-\end{figure}
 
 
 \subsection{Results}
@@ -729,7 +721,7 @@ SPO+ & 29.135 & 13.419 & 6.607 & 35.705 & 14.961 & 25.287 \\
 MSE     & \textbf{2.264} & 2.778 & 2.780 & 2.679 & 3.126 & 3.623 \\
 Rank Loss  & 2.614 & 2.748 & 2.753 & 3.017 & 3.192 & 3.544 \\
 Regret Loss & 2.621 & \textbf{2.584} & \textbf{2.748} & \textbf{2.932} & \textbf{3.076} & \textbf{3.399} \\
-SPO+ & 17.746 & 19.784 & 16.416 & 22.234 & 19.753 & - \\
+SPO+ & 17.746 & 19.784 & 16.416 & 22.234 & 19.753 & 15.003 \\
 \bottomrule
 \end{tabular}}
 \caption{SCT errors across with nonlinear dataset with different noise level. Size $10000$.}
@@ -740,24 +732,20 @@ SPO+ & 17.746 & 19.784 & 16.416 & 22.234 & 19.753 & - \\
 \begin{table}[t]
 \centering
 \resizebox{0.95\columnwidth}{!}{
-\begin{tabular}{lcccccccc}
+\begin{tabular}{lcccccc}
 \toprule
-\multirow{3}{*}{Method} & \multicolumn{8}{c}{Dataset Size} \\
-                         & \multicolumn{2}{c}{5000} & \multicolumn{2}{c}{10000} & \multicolumn{2}{c}{50000} & \multicolumn{2}{c}{100000} \\
-                         & SCT & Time & SCT & Time & SCT & Time & SCT & Time \\
+\multirow{2}{*}{Method} & \multicolumn{6}{c}{Noise Level} \\
+                         & 0 & 2 & 4 & 6 & 8 & 10 \\
 \midrule
-MSE         & 3.027 & 2.794s & 2.798 & 2.719s & 2.767 & 9.685s & 3.037 & 21.624s \\
-Rank Loss   & 2.789 & 25.121s & 2.924 & 30.814s & 2.873 & 35.796s & 2.974 & 45.054s \\
-Regret Loss & \textbf{2.605} & 28.646s & \textbf{2.793} & 33.265s & 2.879 & 41.57s & \textbf{2.920} & 52.593s \\
-SPO+        & 21.276 & 72,2s & 12.356 & 71.981s & 11.591 & 65.29s & 20.757 & 72.5s \\
+MSE     & \textbf{0.017} & 2.778 & 2.780 & 2.679 & 3.126 & 3.623 \\
+Rank Loss  & 2.614 & 2.748 & 2.753 & 3.017 & 3.192 & 3.544 \\
+Regret Loss & 2.621 & \textbf{2.584} & \textbf{2.748} & \textbf{2.932} & \textbf{3.076} & \textbf{3.399} \\
+SPO+ & - & - & - & - & - & - \\
 \bottomrule
 \end{tabular}}
-\caption{SCT errors and training times across different dataset sizes.}
+\caption{Makespan errors across with nonlinear dataset with different noise level. Size $10000$.}
 \label{tab:linear}
 \end{table}
-
-
-
 
 
 
@@ -916,6 +904,41 @@ By construction (Step 3a and 3c), $\phi_d$ represents the cost contribution of a
 In Problem 1, this sum is exactly the SCT regret (sum of $R_{i,j}$ for misordered pairs).
 In Problem 2, it approximates the makespan regret via the aggregated Johnson swap costs.
 \end{proof}
+
+
+\section{Implementation details}
+
+Since we aim to address a wider range of scheduling problems in terms of problem size, we train a general predictive model that is independent of the number of jobs in the input schedule. To achieve this, during the training phase, the neural network schedules the entire training set. Considering all possible combinations of job sets of different lengths is infeasible; therefore, we adopt an approximation by sampling pairwise combinations. Moreover, we show that sampling only a subset of all possible pairs is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwaise_number}.
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.45\textwidth]{new_plot/analysis_number_of_pairs.png}
+    \caption{}
+    \label{fig:pairwaise_number}
+\end{figure}
+
+\section{Additional results}
+
+\begin{table}[t]
+\centering
+\resizebox{0.95\columnwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+\multirow{3}{*}{Method} & \multicolumn{8}{c}{Dataset Size} \\
+                         & \multicolumn{2}{c}{5000} & \multicolumn{2}{c}{10000} & \multicolumn{2}{c}{50000} & \multicolumn{2}{c}{100000} \\
+                         & SCT & Time & SCT & Time & SCT & Time & SCT & Time \\
+\midrule
+MSE         & 3.027 & 2.794s & 2.798 & 2.719s & 2.767 & 9.685s & 3.037 & 21.624s \\
+Rank Loss   & 2.789 & 25.121s & 2.924 & 30.814s & 2.873 & 35.796s & 2.974 & 45.054s \\
+Regret Loss & \textbf{2.605} & 28.646s & \textbf{2.793} & 33.265s & 2.879 & 41.57s & \textbf{2.920} & 52.593s \\
+SPO+        & 21.276 & 72,2s & 12.356 & 71.981s & 11.591 & 65.29s & 20.757 & 72.5s \\
+\bottomrule
+\end{tabular}}
+\caption{SCT errors and training times across different dataset sizes.}
+\label{tab:linear}
+\end{table}
+
 
 \end{document}
 
