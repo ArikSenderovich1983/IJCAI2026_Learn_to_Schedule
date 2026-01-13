@@ -17,6 +17,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
+\usepackage[table]{xcolor}
 \usepackage{booktabs}
 \usepackage{paralist}
 \usepackage{todonotes}
@@ -645,14 +646,14 @@ In the absence of established benchmarks, these two datasets support systematic 
 \begin{itemize}
     \item \emph{Linear model:} \( f(x) = \mathbf{xw} \), where \(\mathbf{w}\) is a randomly generated weight vector, and \(\mathbf{x}\) consists of features uniformly sampled from \([0, 1]\).
     
-    \item \emph{Nonlinear model (Problem~1):} A nonlinear combination is computed as:
+    \item \emph{Nonlinear model:} A nonlinear combination is computed as:
     \[
     g(x) = 3x_1^2 + 4.0\sin(2\pi x_2) + 3x_3x_4 + 2x_5^3,
     \]
     where \(x_1, \dots, x_5\) are uniformly sampled features.
     This specific structure introduces smooth nonlinearities, feature interactions, and periodic components, capturing diverse patterns typical of real-world systems.
 
-    \item \emph{Nonlinear model (Problem~2):}
+    \item \emph{Nonlinear model:}
     To generate a suitable dataset for the $F2|C_{\max}$ problem, we define the durations of activities on both machines $m_1$ and $m_2$. Specifically, we define $m_1(\mathbf{x})$ and $m_2(\mathbf{x})$, which internally contain the function $g(\mathbf{x})$, as defined previously, and produce two distinct values in such a way as to ensure a balanced probability of assigning jobs to groups $G_1$ and $G_2$ (see Section~\ref{sec:flowshop}).
     \[
     \begin{aligned}
@@ -665,17 +666,19 @@ In the absence of established benchmarks, these two datasets support systematic 
 
 The functions were chosen to ensure that the learning task remains nontrivial, requiring the model to capture both local and global feature dependencies, while still being interpretable and reproducible.
 
-o ensure strictly positive durations, constants of $100$ and $500$ were added to the final task durations for the Problem~1 and Problem~2 datasets, respectively. Finally, gaussian noise with standard deviation $\eta$ was added to simulate uncertainty.
+To ensure strictly positive durations, constants of $100$ and $500$ were added to the final task durations for the Problem~1 and Problem~2 datasets, respectively. Finally, gaussian noise with standard deviation $\eta$ was added to simulate uncertainty.
 
 \paragraph{Benchmark methods.}
 
 We compared our method with two predict-and-optimize approaches, \emph{SPO+} and the $MSE$, as well as with a learn-to-rank (LTR) surrogate loss.
 \emph{SPO+} is a convex surrogate loss designed for predict-and-optimize tasks \cite{elmachtoub2022smart}, which focuses predictions on minimizing decision regret.
 In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes incorrect pairwise orderings based on their difference, without relying on the specifics of the scheduling problem.
-For each job pair $(i,j)$
-we define the surrogate loss as $\sigma(\Delta_{ij})$ where in the Problem~1 $\Delta_{ij}$ is defined as 
-$(f_\omega(x_j) - f_\omega(x_i))$ while for Problem~2
-as $\min(\hat{p}_{i1}, \hat{p}_{j2}) -\min(\hat{p}_{j1}, \hat{p}_{i2})$.
+Specifically, for each job pair $(i,j)$ we define the surrogate loss as $\sigma(\Delta_{ij})$ based on Problem~1 and 2:
+\begin{itemize}
+    \item $\Delta_{ij} = (f_\omega(x_j) - f_\omega(x_i))$ hence, if $\Delta_{ij}$ is positive the model is rewarded otherwise is penalized.
+    \item $\Delta_{ij} = \min(\hat{p}_{i1}, \hat{p}_{j2}) -\min(\hat{p}_{j1}, \hat{p}_{i2})$ 
+\end{itemize}
+
 
 \paragraph{Implementation details.}
 The experiments were implemented in Python. Specifically, each baseline was trained using the same two-hidden-layer neural network architecture with the PyTorch library and the same number of iterations. Datasets were generated according to the described models, with varying noise levels $\eta$, to evaluate the models’ robustness to prediction uncertainty. Each dataset was normalized and split into 70\% training, 10\% validation, and 20\% test subsets. 
@@ -693,42 +696,30 @@ The optimal schedule is represent and SPT and Johnson schedule under true proces
 
 \todo[inline]{Add confidence intervals to show the problem of MSE unstability}
 
-\begin{table}[t]
+Table~\ref{tab:linear_nonlinear_SCT} presents a comparison of SPO+, Rank Loss, MSE and the proposed sigmoid surrogate on linear and nonlinear datasets under different level of noise $\eta$. Regarding the linear datasets, the sigmoid surrogate demonstrates robustness across noise levels, consistently achieving lower SCT compared all the baselines.
+
+\begin{table*}[t]
 \centering
-\resizebox{0.95\columnwidth}{!}{
-\begin{tabular}{lcccccc}
+\begin{tabular}{@{}>{\cellcolor{lightgray}}l@{\hskip 0.2in}lccccccc@{}} % extra column for vertical label
 \toprule
-\multirow{2}{*}{Method} & \multicolumn{6}{c}{Noise Level} \\
-                         & 0 & 2 & 4 & 6 & 8 & 10 \\
+\cellcolor{white} & Method & \multicolumn{6}{c}{Noise Level $\eta$} \\
+ \cellcolor{white} &        & 0 & 2 & 4 & 6 & 8 & 10 \\
 \midrule
-MSE     & 0.576\pm0.28 & 0.363\pm0.26 & 0.359 & 0.701 & 0.706 & 1.132 \\
-Rank Loss  & 0.225\pm0.05 & 0.284\pm0.05 & 0.356 & 0.494 & 0.647 & 0.976 \\
-Regret Loss & \textbf{0.209}\pm0.04 & \textbf{0.222}\pm0.05 & \textbf{0.270} & \textbf{0.402}\pm0.24 & \textbf{0.622} & \textbf{0.954} \\
-SPO+ & 29.135\pm0.18 & 13.419 & 6.607 & 35.705 & 14.961 & 25.287 \\
+ & MSE        & 0.576$\pm$0.28 & 0.363$\pm$0.26 & 0.359$\pm$0.12 & 0.701$\pm$0.25 & 0.706$\pm$0.15 & 1.132$\pm$0.16 \\
+ & Rank Loss  & 0.225$\pm$0.05 & 0.284$\pm$0.05 & 0.356$\pm$0.04 & 0.494$\pm$0.04 & 0.647$\pm$0.06 & 0.976$\pm$0.06 \\
+ & Regret Loss & \textbf{0.209}$\pm$0.04 & \textbf{0.222}$\pm$0.05 & \textbf{0.270}$\pm$0.03 & \textbf{0.402}$\pm$0.02 & \textbf{0.622}$\pm$0.03 & \textbf{0.954}$\pm$0.04 \\
+ \multirow{-4}{*}{\rotatebox[origin=c]{90}{\textbf{Linear}}}  & SPO+       & 29.135$\pm$0.18 & 13.419$\pm$0.24 & 6.607$\pm$1.09 & 35.705$\pm$0.24 & 14.961$\pm$0.08 & 25.287$\pm$1.25 \\
+\midrule
+& MSE     & \textbf{2.264}$\pm$0.28 & 2.778$\pm$0.42 & 2.780$\pm$0.20 & 2.679$\pm$0.30 & 3.126$\pm$0.23 & 3.623$\pm$0.19 \\
+& Rank Loss  & 2.614$\pm$0.07 & 2.748$\pm$0.10 & 2.753$\pm$0.07 & 3.017$\pm$0.04 & 3.192$\pm$0.06 & 3.544$\pm$0.07 \\
+& Regret Loss & 2.621$\pm$0.10 & \textbf{2.584}$\pm$0.09 & \textbf{2.748}$\pm$0.07 & \textbf{2.932}$\pm$0.09 & \textbf{3.076}$\pm$0.10 & \textbf{3.399}$\pm$ 0.07\\
+\multirow{-4}{*}{\rotatebox[origin=c]{90}{\textbf{NonLinear}}} & SPO+ & 17.746$\pm$1.80 & 19.784$\pm$0.08 & 16.416$\pm$0.09 & 22.234$\pm$0.09 & 19.753$\pm$0.12 & 13.816$\pm$0.15 \\
 \bottomrule
-\end{tabular}}
-\caption{SCT errors across with linear dataset with different noise level. Size $10000$.}
-\label{tab:linear}
-\end{table}
+\end{tabular}
+\caption{SCT errors across linear and nonlinear datasets of size $10000$ with different noise level.}
+\label{tab:linear_nonlinear_SCT}
+\end{table*}
 
-
-\begin{table}[t]
-\centering
-\resizebox{0.95\columnwidth}{!}{
-\begin{tabular}{lcccccc}
-\toprule
-\multirow{2}{*}{Method} & \multicolumn{6}{c}{Noise Level} \\
-                         & 0 & 2 & 4 & 6 & 8 & 10 \\
-\midrule
-MSE     & \textbf{2.264} & 2.778 & 2.780 & 2.679 & 3.126 & 3.623 \\
-Rank Loss  & 2.614 & 2.748 & 2.753 & 3.017 & 3.192 & 3.544 \\
-Regret Loss & 2.621 & \textbf{2.584} & \textbf{2.748} & \textbf{2.932} & \textbf{3.076} & \textbf{3.399} \\
-SPO+ & 17.746 & 19.784 & 16.416 & 22.234 & 19.753 & 15.003 \\
-\bottomrule
-\end{tabular}}
-\caption{SCT errors across with nonlinear dataset with different noise level. Size $10000$.}
-\label{tab:linear}
-\end{table}
 
 
 \begin{table}[t]
@@ -739,9 +730,9 @@ SPO+ & 17.746 & 19.784 & 16.416 & 22.234 & 19.753 & 15.003 \\
 \multirow{2}{*}{Method} & \multicolumn{6}{c}{Noise Level} \\
                          & 0 & 2 & 4 & 6 & 8 & 10 \\
 \midrule
-MSE     & \textbf{0.017} &  & 0.107 &  & 0.237 &  \\
-Rank Loss  & 0.123 &  & 0.109 &  & 0.197 &  \\
-Regret Loss & 0.018 & & \textbf{0.085} &  & \textbf{0.153} &  \\
+MSE     & \textbf{0.017} & \textbf{0.045} & 0.107 & \textbf{0.143} & 0.237 & 0.197 \\
+Rank Loss  & 0.123 & 0.064 & 0.109 & 0.176 & 0.197 & 0.181 \\
+Regret Loss & 0.018 & 0.066 & \textbf{0.085} & 0.168 & \textbf{0.153} & \textbf{0.184} \\
 SPO+ & - & - & - & - & - & - \\
 \bottomrule
 \end{tabular}}
@@ -909,7 +900,7 @@ In Problem 2, it approximates the makespan regret via the aggregated Johnson swa
 
 \section{Implementation details}
 
-Since we aim to address a wider range of scheduling problems in terms of problem size, we train a general predictive model that is independent of the number of jobs in the input schedule. To achieve this, during the training phase, the neural network schedules the entire training set. Considering all possible combinations of job sets of different lengths is infeasible; therefore, we adopt an approximation by sampling pairwise combinations. Moreover, we show that sampling only a subset of all possible pairs is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwaise_number}.
+We aim to address a wider range of scheduling problems in terms of problem size; therefore, we train a general predictive model that is independent of the number of jobs in the input schedule. To achieve this, during the training phase, the neural network schedules the entire training set. Considering all possible combinations of job sets of different lengths is infeasible; therefore, we adopt an approximation by sampling pairwise combinations. Moreover, we show that sampling only a subset of all possible pairs is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwaise_number}.
 
 
 \begin{figure}[t]
@@ -940,6 +931,24 @@ SPO+        & 21.276 & 72,2s & 12.356 & 71.981s & 11.591 & 65.29s & 20.757 & 72.
 \label{tab:linear}
 \end{table}
 
+
+\begin{table}[t]
+\centering
+\resizebox{0.95\columnwidth}{!}{
+\begin{tabular}{lccc}
+\toprule
+\multirow{2}{*}{Method} & \multicolumn{3}{c}{Noise Level} \\
+                         & 0 & 5 & 10 \\
+\midrule
+MSE     & 0.715 & 4.110 & 9.492 \\
+Rank Loss  & 2.499  & 6.069 & 11.181 \\
+Regret Loss &  \textbf{0.225} & \textbf{3.983} & \textbf{9.327} \\
+SPO+ & 1.387 & 5.160 & 10.415  \\
+\bottomrule
+\end{tabular}}
+\caption{SCT errors across with nonlinear dataset with different noise level as $10\times1$ jobs as input to schedule.}
+\label{tab:linear}
+\end{table}
 
 \end{document}
 
