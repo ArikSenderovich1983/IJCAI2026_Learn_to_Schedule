@@ -572,24 +572,28 @@ We constructed two synthetic datasets using linear and nonlinear functions to si
 This setup offers full control over noise and duration variability, allowing us to isolate the effect of surrogate loss choice.
 In the absence of established benchmarks, these two datasets support systematic evaluation.
 \begin{itemize}
-    \item \emph{Linear model:} \( f(x) = \mathbf{xw} \), where \(\mathbf{w}\) is a randomly generated weight vector, and \(\mathbf{x}\) consists of features uniformly sampled from \([0, 1]\).
-    
-    \item \emph{Nonlinear model:} A nonlinear combination is computed as:
-    \[
-    g(x) = 3x_1^2 + 4.0\sin(2\pi x_2) + 3x_3x_4 + 2x_5^3,
-    \]
-    where \(x_1, \dots, x_5\) are uniformly sampled features.
-    This specific structure introduces smooth nonlinearities, feature interactions, and periodic components, capturing diverse patterns typical of real-world systems.
+    \item \textbf{Problem 1 (SCT) Generation.} We generate job durations using linear and nonlinear functions:
+    \begin{itemize}
+        \item \emph{Linear model:} \( f(x) = \mathbf{xw} \), where \(\mathbf{w}\) is a randomly generated weight vector, and \(\mathbf{x}\) consists of features uniformly sampled from \([0, 1]\).
+        \item \emph{Nonlinear model:} A nonlinear combination is computed as:
+        \[
+        g(x) = 3x_1^2 + 4.0\sin(2\pi x_2) + 3x_3x_4 + 2x_5^3,
+        \]
+        where \(x_1, \dots, x_5\) are uniformly sampled features.
+        This specific structure introduces smooth nonlinearities, feature interactions, and periodic components.
+    \end{itemize}
 
-    \item \emph{Nonlinear model:}
-    To generate a suitable dataset for the $F2|C_{\max}$ problem, we define the durations of activities on both machines $m_1$ and $m_2$. Specifically, we define $m_1(\mathbf{x})$ and $m_2(\mathbf{x})$, which internally contain the function $g(\mathbf{x})$, as defined previously, and produce two distinct values in such a way as to ensure a balanced probability of assigning jobs to groups $G_1$ and $G_2$ (see Section~\ref{sec:flowshop}).
-    \[
-    \begin{aligned}
-    m_1(\mathbf{x}) &= g(\mathbf{x}) + 0.3\, x_1 - 0.2\, x_3, \\
-    m_2(\mathbf{x}) &= g(\mathbf{x}) - 0.25\, x_2 + 0.4\, x_4 .
-    \end{aligned}
-    \]
-
+    \item \textbf{Problem 2 (Flow Shop) Generation.} We generate durations for two machines, $m_1$ and $m_2$:
+    \begin{itemize}
+        \item \emph{Linear model:} Generated similarly to Problem 1.
+        \item \emph{Nonlinear model:} To ensure a balanced probability of assigning jobs to groups $G_1$ and $G_2$ (see Section~\ref{sec:flowshop}), we use the function $g(\mathbf{x})$ defined above:
+        \[
+        \begin{aligned}
+        m_1(\mathbf{x}) &= g(\mathbf{x}) + 0.3\, x_1 - 0.2\, x_3, \\
+        m_2(\mathbf{x}) &= g(\mathbf{x}) - 0.25\, x_2 + 0.4\, x_4 .
+        \end{aligned}
+        \]
+    \end{itemize}
 \end{itemize}
 
 The functions were chosen to ensure that the learning task remains nontrivial, requiring the model to capture both local and global feature dependencies, while still being interpretable and reproducible.
@@ -609,13 +613,13 @@ The experiments were implemented in Python. Specifically, each baseline was trai
 
 
 \paragraph{Evaluation metric.}
-Models were evaluated on the test set by comparing the SCT and Makespan achieved predicted job orderings against those of the true optimal order, with results averaged over ten runs.
-The optimal schedule is represent and SPT and Johnson schedule under true processing times for Problem~1 and ~2, respectively.
+Models were evaluated on the test set by comparing the SCT and Makespan achieved by predicted job orderings against those of the true optimal order, with results averaged over ten runs.
+The optimal schedule is represented by SPT and Johnson schedule under true processing times for Problem~1 and ~2, respectively.
 
 
 \subsection{Results}
 
-Table~\ref{tab:linear_nonlinear_SCT} presents a comparison of SPO+, Rank Loss, MSE and the proposed sigmoid surrogate on linear and nonlinear datasets under different level of noise $\eta$. Regarding the linear datasets, the sigmoid surrogate demonstrates robustness across noise levels, consistently achieving lower SCT compared all the baselines.
+Table~\ref{tab:linear_nonlinear_SCT} presents a comparison of SPO+, Rank Loss, MSE and the proposed sigmoid surrogate on linear and nonlinear datasets under different level of noise $\eta$. Regarding the linear datasets, the sigmoid surrogate demonstrates robustness across noise levels, consistently achieving lower SCT compared to all the baselines.
 
 
 \begin{table*}[t]
@@ -660,7 +664,7 @@ Table~\ref{tab:linear_nonlinear_SCT} presents a comparison of SPO+, Rank Loss, M
 \bottomrule
 \end{tabular}
 \caption{SCT errors across linear and nonlinear datasets of size $10000$ with different noise level on Problem~2.}
-\label{tab:linear_nonlinear_SCT}
+\label{tab:linear_nonlinear_SCT_flowshop}
 \end{table*}
 
 
@@ -827,15 +831,15 @@ In Problem 2, it approximates the makespan regret via the aggregated Johnson swa
 
 \section{Implementation details}
 
-We aim to address a wider range of scheduling problems in terms of problem size; therefore, we train a general predictive model that is independent of the number of jobs in the input schedule. To achieve this, during the training phase, the neural network schedules the entire training set. Considering all possible combinations of job sets of different lengths is infeasible; therefore, we adopt an approximation by sampling pairwise combinations. Moreover, we show that sampling only a subset of all possible pairs is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwaise_number}.
-
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.45\textwidth]{new_plot/analysis_number_of_pairs.png}
-    \caption{}
-    \label{fig:pairwaise_number}
-\end{figure}
+We aim to address a wider range of scheduling problems in terms of problem size; therefore, we train a general predictive model that is independent of the number of jobs in the input schedule. To achieve this, during the training phase, the neural network schedules the entire training set. Considering all possible combinations of job sets of different lengths is infeasible; therefore, we adopt an approximation by sampling pairwise combinations. Moreover, we show that sampling only a subset of all possible pairs is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwise_number}.
+    
+    
+    \begin{figure}[t]
+        \centering
+        \includegraphics[width=0.45\textwidth]{new_plot/analysis_number_of_pairs.png}
+        \caption{Impact of the number of sampled pairs on performance.}
+        \label{fig:pairwise_number}
+    \end{figure}
 
 \section{Additional results}
 
@@ -851,7 +855,7 @@ We aim to address a wider range of scheduling problems in terms of problem size;
 MSE         & 3.027 & 2.794s & 2.798 & 2.719s & 2.767 & 9.685s & 3.037 & 21.624s \\
 Rank Loss   & 2.789 & 25.121s & 2.924 & 30.814s & 2.873 & 35.796s & 2.974 & 45.054s \\
 Regret Loss & \textbf{2.605} & 28.646s & \textbf{2.793} & 33.265s & 2.879 & 41.57s & \textbf{2.920} & 52.593s \\
-SPO+        & 21.276 & 72,2s & 12.356 & 71.981s & 11.591 & 65.29s & 20.757 & 72.5s \\
+SPO+        & 21.276 & 72.2s & 12.356 & 71.981s & 11.591 & 65.29s & 20.757 & 72.5s \\
 \bottomrule
 \end{tabular}}
 \caption{SCT errors and training times across different dataset sizes.}
