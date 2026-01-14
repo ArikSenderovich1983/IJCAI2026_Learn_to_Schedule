@@ -58,3 +58,22 @@ Rank Loss & 58.2 \\
 %The primary evaluation metric was the SCT achieved by predicted task orderings.Lower SCT values indicate better scheduling performance. 
 %SCT errors were visualized on a logarithmic scale to highlight relative differences across noise levels and duration ranges.
 %Percentage improvements relative to the proposed surrogate-based method were also reported. We plan to generate synthetic flow shop instances with known processing times $(p_{i1},p_{i2})$ and derive features from them, mirroring the setup in Section~\ref{sec:evaluation}.
+
+
+\begin{table}[t]
+\centering
+\resizebox{0.95\columnwidth}{!}{
+\begin{tabular}{lccc}
+\toprule
+\multirow{2}{*}{Method} & \multicolumn{3}{c}{Noise Level} \\
+                         & 0 & 5 & 10 \\
+\midrule
+MSE     & 0.715 & 4.110 & 9.492 \\
+Rank Loss  & 2.499  & 6.069 & 11.181 \\
+Regret Loss &  \textbf{0.225} & \textbf{3.983} & \textbf{9.327} \\
+SPO+ & 1.387 & 5.160 & 10.415  \\
+\bottomrule
+\end{tabular}}
+\caption{SCT errors across with nonlinear dataset with different noise level as $10\times1$ jobs as input to schedule.}
+\label{tab:linear}
+\end{table}

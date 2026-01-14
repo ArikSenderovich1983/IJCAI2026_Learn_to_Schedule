@@ -516,17 +516,15 @@ $\hat{\pi}=\mathcal{A}_{\mathrm{J}}(\hat{\theta})$, using $\hat{\theta}_i=(\hat{
 (1) a penalty for incorrect \emph{group assignment}, and
 (2) a penalty for incorrect \emph{within-group ordering}.
 Both components rely on sigmoidal approximations of indicator functions, as in
-Section~\ref{sec:framework}.
+Section~\ref{sec:framework}. 
 
-\smallskip
-\noindent\textbf{Instantiation of $(\mathcal{K}, s_d, m_d, \phi_d)$ for Johnson's rule.}
 Let $\mathcal{K}=\mathcal{K}_{\mathrm{group}}\cup\mathcal{K}_{\mathrm{order}}$
 with group decisions $d=i$ and ordering decisions $d=(i,j)$.
 For $d=i$, set $s_d=\hat{d}_i$, $m_d=\hat{d}_i d_i$ with $d_i=p_{i1}-p_{i2}$, and
 $\phi_d=|d_i|$.
 For $d=(i,j)$, set $\phi_d=\Delta_{i,j}$ and use sortable scores:
 in $G_1$ (true $p_{i1}<p_{j1}$) take $s_d=\hat{s}_i-\hat{s}_j$ and $m_d=-s_d$;
-in $G_2$ (true $p_{i2}>p_{j2}$) take $s_d=\hat{s}_j-\hat{s}_i$ and $m_d=-s_d$.
+in $G_2$ (true $p_{i1}>p_{j1}$) take $s_d=\hat{s}_j-\hat{s}_i$ and $m_d=-s_d$.
 Then each term in $L_{\mathrm{group}}$ and $L_{\mathrm{order}}$ matches
 Eq.~\eqref{eq:general-surrogate}.
 
@@ -539,17 +537,17 @@ i \in G_1 \iff d_i < 0.
 \]
 Incorrect assignment occurs when the predicted sign of $\hat{d}_i$ differs from the
 true sign of $d_i$.
-We define the group surrogate loss as
+We define the group surrogate loss as,
 \begin{equation}
 L_{\mathrm{group}}
 := 
 \sum_{i} 
-w_i \,
+\phi_i \,
 \sigma\!\left( -\frac{\hat{d}_i\, d_i}{\lambda} \right),
 \label{eq:group-loss}
 \end{equation}
 where $\sigma$ is the sigmoid function, $\lambda>0$ controls smoothness, and
-$w_i = |d_i|$ weights mistakes according to the severity of misclassification
+$\phi_i = |d_i|$ weights mistakes according to the severity of misclassification
 (the farther a job is from the decision boundary $p_{i1} = p_{i2}$, the more 
 important it is to assign it correctly).
 The term in~\eqref{eq:group-loss} is
@@ -673,11 +671,7 @@ To ensure strictly positive durations, constants of $100$ and $500$ were added t
 We compared our method with two predict-and-optimize approaches, \emph{SPO+} and the $MSE$, as well as with a learn-to-rank (LTR) surrogate loss.
 \emph{SPO+} is a convex surrogate loss designed for predict-and-optimize tasks \cite{elmachtoub2022smart}, which focuses predictions on minimizing decision regret.
 In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes incorrect pairwise orderings based on their difference, without relying on the specifics of the scheduling problem.
-Specifically, for each job pair $(i,j)$ we define the surrogate loss as $\sigma(\Delta_{ij})$ based on Problem~1 and 2:
-\begin{itemize}
-    \item $\Delta_{ij} = (f_\omega(x_j) - f_\omega(x_i))$ hence, if $\Delta_{ij}$ is positive the model is rewarded otherwise is penalized.
-    \item $\Delta_{ij} = \min(\hat{p}_{i1}, \hat{p}_{j2}) -\min(\hat{p}_{j1}, \hat{p}_{i2})$ 
-\end{itemize}
+Specifically, for each job pair $(i,j)$ we define the surrogate loss as $\sigma(\Delta_{ij})$ based on Problem~1 and 2.
 
 
 \paragraph{Implementation details.}
@@ -694,9 +688,8 @@ The optimal schedule is represent and SPT and Johnson schedule under true proces
 
 \subsection{Results}
 
-\todo[inline]{Add confidence intervals to show the problem of MSE unstability}
-
 Table~\ref{tab:linear_nonlinear_SCT} presents a comparison of SPO+, Rank Loss, MSE and the proposed sigmoid surrogate on linear and nonlinear datasets under different level of noise $\eta$. Regarding the linear datasets, the sigmoid surrogate demonstrates robustness across noise levels, consistently achieving lower SCT compared all the baselines.
+
 
 \begin{table*}[t]
 \centering
@@ -721,24 +714,28 @@ Table~\ref{tab:linear_nonlinear_SCT} presents a comparison of SPO+, Rank Loss, M
 \end{table*}
 
 
-
-\begin{table}[t]
+\begin{table*}[t]
 \centering
-\resizebox{0.95\columnwidth}{!}{
-\begin{tabular}{lcccccc}
+\begin{tabular}{@{}>{\cellcolor{lightgray}}l@{\hskip 0.2in}lccccccc@{}} % extra column for vertical label
 \toprule
-\multirow{2}{*}{Method} & \multicolumn{6}{c}{Noise Level} \\
-                         & 0 & 2 & 4 & 6 & 8 & 10 \\
+\cellcolor{white} & Method & \multicolumn{6}{c}{Noise Level $\eta$} \\
+ \cellcolor{white} &        & 0 & 2 & 4 & 6 & 8 & 10 \\
 \midrule
-MSE     & \textbf{0.017} & \textbf{0.045} & 0.107 & \textbf{0.143} & 0.237 & 0.197 \\
-Rank Loss  & 0.123 & 0.064 & 0.109 & 0.176 & 0.197 & 0.181 \\
-Regret Loss & 0.018 & 0.066 & \textbf{0.085} & 0.168 & \textbf{0.153} & \textbf{0.184} \\
-SPO+ & - & - & - & - & - & - \\
+ & MSE        & \textbf{0.001}$\pm$0.0007 & 0.015$\pm$0.017 & 0.010$\pm$0.008 & \textbf{0.010}$\pm$ & \textbf{0.016}$\pm$ & 0.022$\pm$\\
+ & Rank Loss  & 0.061$\pm$0.025 & 0.067$\pm$0.015 & 0.057$\pm$0.015 & 0.058$\pm$ & 0.072$\pm$ & 0.105$\pm$  \\
+ & Regret Loss & 0.004$\pm$0.003 & \textbf{0.011}$\pm$0.006 & \textbf{0.008}$\pm$0.005 & 0.015$\pm$ & 0.019$\pm$ & \textbf{0.013}$\pm$ \\
+ \multirow{-4}{*}{\rotatebox[origin=c]{90}{\textbf{Linear}}}  & SPO+  & $\pm$ & $\pm$ & $\pm$ & $\pm$ & $\pm$ & $\pm$ \\
+\midrule
+& MSE     & 0.017$\pm$ & 0.045$\pm$ & 0.074$\pm$ & \textbf{0.143}$\pm$ & 0.201$\pm$ & 0.197$\pm$ \\
+& Rank Loss  & 0.037$\pm$ & \textbf{0.039}$\pm$ & 0.079$\pm$ & 0.098$\pm$ & 0.146$\pm$ & $\pm$ \\
+& Regret Loss & \textbf{0.005}$\pm$ & \textbf{0.039}$\pm$ & \textbf{0.064}$\pm$ & \textbf{0.143}$\pm$ & \textbf{0.132}$\pm$ & $\pm$ \\
+\multirow{-4}{*}{\rotatebox[origin=c]{90}{\textbf{NonLinear}}} & SPO+ & $\pm$ & $\pm$ & $\pm$ & $\pm$ & $\pm$ & $\pm$ \\
 \bottomrule
-\end{tabular}}
-\caption{Makespan errors across with nonlinear dataset with different noise level. Size $10000$.}
-\label{tab:linear}
-\end{table}
+\end{tabular}
+\caption{SCT errors across linear and nonlinear datasets of size $10000$ with different noise level on Problem~2.}
+\label{tab:linear_nonlinear_SCT}
+\end{table*}
+
 
 
 \section{Case Study: Patient Scheduling}
@@ -752,8 +749,11 @@ experimental protocol, and results.
 
 We evaluate our method on real-world data from \textit{DayHospital}, a U.S.\ cancer clinic. The problem is to sequence patient exams to minimize congestion (SCT), where appointment times are known but exam durations are uncertain.
 The dataset spans two months (January and November 2021) and contains approximately 201,000 patient pathways derived from RTLS traces.
-For each exam, we extract a feature vector \(x_i\) comprising \texttt{floor\_id}, \texttt{scheduled\_time}, \texttt{department}, \texttt{scheduled\_duration\_min}, \texttt{diagnosis}, \texttt{appointment\_type}, and a \texttt{link\_flag} for subsequent infusions.
-To simulate deployment, we use a rolling-horizon split: training on the first three weeks of each month and evaluating on the fourth.
+For each exam, we extract a feature vector $\mathbf{x}_i$ comprising
+the exam location, scheduled time, department, scheduled duration,
+diagnosis, appointment type, and a linkage indicator for subsequent infusions.
+To simulate deployment, we use a rolling-horizon split, training on the first three weeks of each month and evaluating on the fourth.
+
 
 We compare our sigmoid-based surrogate against three baselines: (i) \emph{Rank Loss} (pairwise negative log-likelihood), (ii) \emph{Mean Squared Error (MSE)} (predict-then-optimize), and (iii) \emph{SPO+} (a convex decision-aware surrogate).
 All models are two-layer feedforward neural networks trained with Adam.
@@ -932,23 +932,7 @@ SPO+        & 21.276 & 72,2s & 12.356 & 71.981s & 11.591 & 65.29s & 20.757 & 72.
 \end{table}
 
 
-\begin{table}[t]
-\centering
-\resizebox{0.95\columnwidth}{!}{
-\begin{tabular}{lccc}
-\toprule
-\multirow{2}{*}{Method} & \multicolumn{3}{c}{Noise Level} \\
-                         & 0 & 5 & 10 \\
-\midrule
-MSE     & 0.715 & 4.110 & 9.492 \\
-Rank Loss  & 2.499  & 6.069 & 11.181 \\
-Regret Loss &  \textbf{0.225} & \textbf{3.983} & \textbf{9.327} \\
-SPO+ & 1.387 & 5.160 & 10.415  \\
-\bottomrule
-\end{tabular}}
-\caption{SCT errors across with nonlinear dataset with different noise level as $10\times1$ jobs as input to schedule.}
-\label{tab:linear}
-\end{table}
+
 
 \end{document}
 
