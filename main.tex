@@ -31,7 +31,6 @@
 \linenumbers
 \urlstyle{same}
 
-% PDF metadata required by IJCAI (title/authors intentionally omitted)
 \pdfinfo{
 /TemplateVersion (IJCAI.2026.0)
 }
@@ -53,20 +52,6 @@
 \title{Surrogate-Based Smart Predict and Schedule}
 
 \author{Anonymous}
-% \author{
-%   First Author$^1$\and
-%   Second Author$^2$\And
-%   Third Author$^3$\\
-%   \affiliations
-%   $^1$Affiliation One\\
-%   $^2$Affiliation Two\\
-%   $^3$Affiliation Three\\
-%   \emails
-%   first.author@example.com,
-%   second.author@example.com,
-%   third.author@example.com
-% }
-
 \begin{document}
 
 \maketitle
@@ -113,7 +98,6 @@ Our contributions can be summarized as follows:
 \begin{enumerate}
     \item We propose a surrogate-based framework for smart predict-and-schedule that views polynomial-time scheduling rules (e.g., SPT, EDD, FIFO, Johnson's rule) as sets of critical decisions and derives differentiable sigmoid-based losses at the decision level.
     \item We instantiate this framework on two classical scheduling problems: (i) single-machine SCT minimization and (ii) two-machine flow shop makespan minimization, deriving problem-specific surrogates that weight each decision by its contribution to SCT or makespan.
-%    \item We provide theoretical guarantees for the SCT surrogate, including differentiability and convergence to regret as the sigmoid sharpness parameter tends to zero, and show how algorithmic structure (e.g., Johnson's rule and associated swap costs) guides surrogate design in the flow shop setting.
     \item We empirically evaluate our approach on synthetic SCT benchmarks and a real-world hospital scheduling dataset, demonstrating consistent improvements over state-of-the-art SPO, learn-to-rank, and predict-then-optimize baselines.
 \end{enumerate} The remainder of the paper is organized as follows.
 Section~\ref{sec:framework} introduces our general predict-and-schedule framework.
@@ -266,43 +250,6 @@ In this paper, we focus on scheduling and show an instantiation
 of the framework for two well-known scheduling problems
 under uncertainty.
 
-% \subsection{Implications for Scheduling Problems}
-% \label{sec:framework-scheduling}
-
-% Scheduling problems are a natural fit for the proposed framework because many
-% deterministic scheduling objectives admit polynomial-time optimal rules with
-% explicit structure.
-% In such cases, the set $\mathcal{K}$ of critical decisions is not an
-% abstraction: it corresponds to the comparisons and assignments performed by the
-% rule itself.
-% Importantly, $\mathcal{K}$ is \emph{problem- and rule-dependent} and does not
-% have to be a set of job pairs.
-
-% \paragraph{Examples of critical-decision sets.}
-% \begin{itemize}
-%     \item \textbf{SPT for $1\|\sum C_j$:}
-%     $\mathcal{K}$ can be taken as pairwise precedence decisions
-%     $d=(i,j)$ encoding ``$i$ should precede $j$'', induced by comparisons
-%     of processing times.
-%     \item \textbf{EDD for due-date objectives:}
-%     $\mathcal{K}$ can similarly be precedence decisions based on due dates.
-%     \item \textbf{FIFO in single-server queues:}
-%     $\mathcal{K}$ encodes precedence decisions induced by arrival-time order.
-%     \item \textbf{Johnson's rule for $F2\|C_{\max}$:}
-%     $\mathcal{K}$ naturally decomposes into (i) per-job group-assignment
-%     decisions (whether job $i$ belongs to $G_1$ or $G_2$) and
-%     (ii) within-group ordering decisions.
-%     The former are \emph{not} pairwise comparisons.
-% \end{itemize}
-
-% \paragraph{Why decision-level weights matter.}
-% Weights $w_d(\theta^\star)$ are essential: they determine which mistakes the
-% learning algorithm prioritizes.
-% For SCT, swapping two jobs far apart in the sequence can have much larger
-% impact than swapping two adjacent jobs; for Johnson's rule, misclassifying a
-% job close to the boundary $p_{i1}=p_{i2}$ may be less harmful than
-% misclassifying a job with a large margin, and some within-group misorderings
-% increase makespan substantially more than others.
 
 \subsection{Running Example: Outpatient Scheduling}
 \label{sec:framework-running-example}
@@ -325,12 +272,6 @@ This connects directly to the hospital case study in
 Section~\ref{sec:case_study}, where our learning objective is designed to
 improve the resulting patient sequencing rather than pointwise duration
 accuracy.
-
-% In the remainder of the paper, we instantiate the framework on two canonical
-% problems: single-machine SCT minimization (Problem~1) and two-machine flow shop
-% makespan minimization (Problem~2).
-% For each, we derive a problem-specific surrogate by specifying (i) the set of
-% critical decisions $\mathcal{K}$ and (ii) the weights $\phi_d$.
 
 \section{Problem 1: Single-Machine Scheduling}
 \label{sec:problem1}
@@ -360,17 +301,6 @@ times, the deterministic algorithm is
 \pi(\theta)=\mathcal{A}_{\mathrm{SPT}}(\theta)
 \),
 where $\mathcal{A}_{\mathrm{SPT}}$ sorts tasks by increasing $\theta_i$.
-
-% In realistic settings, however, the actual task durations are unknown.
-% Instead, historical data with features correlated with task durations are available.
-% This historical data can be used to predict task durations and subsequently schedule the tasks using the SPT rule.
-% However, prediction errors can lead to suboptimal schedules.
-
-% Adopting a supervised learning framework, we assume the following model~\cite{hastie2009elements}:
-% \begin{equation} \label{eq:master_ppm}
-% y_i = f(x_i) + \epsilon_i,
-% \end{equation}
-% where $f$ is an unknown deterministic function, and $\epsilon_i$ is a random noise term with mean $0$ and variance $\sigma^2$ (identically distributed across tasks).
 
 A straightforward approach is the predict-then-optimize paradigm~\cite{Mandi2020},
 in which $f_\omega$ is learned by minimizing empirical mean squared error (MSE):
@@ -681,9 +611,6 @@ The experiments were implemented in Python. Specifically, each baseline was trai
 \paragraph{Evaluation metric.}
 Models were evaluated on the test set by comparing the SCT and Makespan achieved predicted job orderings against those of the true optimal order, with results averaged over ten runs.
 The optimal schedule is represent and SPT and Johnson schedule under true processing times for Problem~1 and ~2, respectively.
-
-
-%We expect the Johnson-aligned surrogate in Section~\ref{sec:flowshop} to outperform baselines, particularly under high noise, by directly encoding the structure of the deterministic optimal policy.
 
 
 \subsection{Results}
