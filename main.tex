@@ -86,8 +86,7 @@ For this class, we propose \emph{SASS} (Structure-Aware Surrogate Scheduling): a
 At inference time, we use the learned predictor inside the original polynomial-time rule, preserving interpretability and efficiency.
 
 We instantiate SASS for two classical problems where the deterministic optimum is known: (i) single-machine SCT minimization (SPT rule), and (ii) two-machine flow shop makespan minimization (Johnson's rule). 
-To validate this positioning, we compare SASS against predict-then-optimize (MSE), learn-to-rank (LTR), and an SPO-based baseline, namely SPO+~\cite{elmachtoub2022smart}.
-These baselines span objective-unaware prediction (MSE), generic ranking surrogates (LTR), and decision-aware regret surrogates (SPO+).
+To validate this positioning, we compare SASS against predict-then-optimize (MSE), learn-to-rank (LTR), and an SPO-based baseline (SPO+~\cite{elmachtoub2022smart}), spanning objective-unaware prediction, generic ranking surrogates, and decision-aware regret surrogates, respectively.
 
 
 On synthetic instances, MSE may achieve lower average error in some regimes, but SASS is markedly more stable under increasing noise and consistently outperforms the SPO-based baseline.
