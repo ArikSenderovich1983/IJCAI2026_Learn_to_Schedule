@@ -86,10 +86,10 @@ For this class, we propose \emph{SASS} (Structure-Aware Surrogate Scheduling): a
 At inference time, we use the learned predictor inside the original polynomial-time rule, preserving interpretability and efficiency.
 
 We instantiate SASS for two classical problems where the deterministic optimum is known: (i) single-machine SCT minimization (SPT rule), and (ii) two-machine flow shop makespan minimization (Johnson's rule). 
-To validate this positioning, we compare SASS against three 
-types of approaches: 1. a predict-then-optimize method that minimizes
-the mean-squared error (MSE), unaware of the scheduling objective, 2. a learn-to-rank (LTR) method
-that sees the scheduling problem as a ranking problem, and 3. an SPO-based efficient baseline dubbed SPO+ (proposed in~\cite{elmachtoub2022smart}).
+To validate this positioning, we compare SASS against predict-then-optimize (MSE), learn-to-rank (LTR), and an SPO-based baseline (SPO+;~\cite{elmachtoub2022smart}).
+MSE is unaware of the scheduling objective and only penalizes pointwise prediction error, so improvements in MSE do not necessarily translate to better schedules.
+LTR treats scheduling as a ranking problem and learns correct orderings, but its loss is generic and does not weight mistakes by their downstream impact on the scheduling objective.
+SPO+ is a decision-aware surrogate inspired by the SPO framework that aims to reduce regret, but can be less stable in our scheduling settings where small prediction changes can induce large discrete changes in the resulting schedule.
 
 
 On synthetic instances, MSE may achieve lower average error in some regimes, but SASS is markedly more stable under increasing noise and consistently outperforms the SPO-based baseline.
@@ -109,15 +109,10 @@ We discuss related work in Section~\ref{sec:related_work} and conclude in Sectio
 \section{Surrogate-Based Predict-and-Schedule}
 \label{sec:framework}
 
-This section states the paper's core premise and positioning.
-We focus on \emph{surrogate-friendly scheduling problems}: settings where (i) the
-deterministic optimum is given by a known polynomial-time algorithm
-$\mathcal{A}$, and (ii) $\mathcal{A}$ can be decomposed into a finite set of
-\emph{critical decisions} (comparisons, threshold tests, group assignments) that
-determine the schedule.
-For this class, SASS replaces the discrete decisions of $\mathcal{A}$ with a
-smooth, objective-weighted surrogate loss and then plugs the learned predictor
-back into $\mathcal{A}$ at inference time.
+This section introduces SASS at a high level and clarifies what problem class it targets.
+We focus on \emph{surrogate-friendly scheduling problems}, where the deterministic optimum is given by a known polynomial-time rule $\mathcal{A}$ and the schedule can be characterized by a set of \emph{critical decisions} (e.g., comparisons, threshold tests, group assignments).
+We then describe SASS as a four-step recipe (Steps 1--4 below): identify prediction targets, identify $\mathcal{A}$ and its critical decisions, derive an objective-weighted smooth surrogate, and finally deploy by plugging the learned predictor back into $\mathcal{A}$.
+To ground the notation and motivate the design choices, we conclude this section with a running example on outpatient scheduling (Section~\ref{sec:framework-running-example}).
 
 \subsection{Problem Setting}
 
