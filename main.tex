@@ -152,7 +152,7 @@ In some problems, it is convenient for $f_\omega$ to predict not the raw
 parameters $\theta$ directly, but a set of \emph{decision-relevant scores} that
 parameterize the critical decisions of the deterministic algorithm (Step~2).
 
-\noindent\textbf{Step 2: Specify the deterministic optimal rule and its critical decisions.}
+\noindent\textbf{Step 2: Specify the deterministic optimal rule and extract its critical decisions.}
 Many scheduling problems become tractable when $\theta^\star$ is known.
 Suppose that, for known parameters $\theta$, the deterministic variant admits a
 polynomial-time algorithm $\mathcal{A}$ that returns an optimal decision:
@@ -161,32 +161,25 @@ polynomial-time algorithm $\mathcal{A}$ that returns an optimal decision:
 \]
 Examples include single-machine scheduling problems where sorting rules are optimal, and
 two-machine flow shops solved by Johnson’s rule, two problems which we tackle in this paper.
-Such algorithms typically reveal a structural decomposition
-$\mathcal{A}(\theta)$ that induces partitions, rankings, or threshold decisions.
-This structure is key for constructing differentiable surrogates.
+Such algorithms typically admit a structural decomposition into a finite set of
+\emph{critical decisions} (comparisons, threshold tests, group assignments) that determine the resulting schedule.
+We denote this set by $\mathcal{K}$ and treat each $d\in\mathcal{K}$ as a labeled decision whose correct outcome is implied by $\theta^\star$.
+This explicit representation of $\mathcal{A}$ via $\mathcal{K}$ is what makes the problem \emph{surrogate-friendly} and enables the construction of a differentiable training objective in Step~3.
 
 \noindent\textbf{Step 3: Build an objective-weighted, smooth surrogate.}
 The deterministic algorithm $\mathcal{A}$ induces a discrete mapping from
 parameters~$\theta$ to decisions~$\pi$.
-SASS replaces this mapping with a differentiable surrogate loss that mirrors the critical decisions of $\mathcal{A}$ and weights errors by their objective impact.
+Given the critical decision set $\mathcal{K}$ extracted in Step~2, SASS replaces the discrete decision outcomes with a differentiable surrogate loss and weights decision errors by their objective impact.
 Compared to treating the optimization oracle as a black box, this ``white-box'' construction yields simpler gradients and avoids repeatedly solving a hard optimization problem during training.
 The construction follows three ingredients:
 
-\paragraph{(a) Critical decisions.}
-Let $\mathcal{A}$ determine a schedule through a finite set of \emph{critical
-decisions} $\mathcal{K}$, such as:
-(i) pairwise precedence comparisons (e.g., SPT-style ordering
-decisions), (ii) threshold tests, or (iii) group assignments (e.g., Johnson's
-partition into two groups).
-Some rules in $\mathcal{K}$
-are per-job classification decisions, while others are pairwise job comparisons.
+\paragraph{(a) Decision scores.}
+For each critical decision $d \in \mathcal{K}$, define a signed \emph{decision
+score} $s_d(\omega;x)$ produced by the predictor, such that the sign of $s_d$
+encodes the model's preferred outcome for $d$ (e.g., ``$i$ before $j$'').
 
 \paragraph{(b) Oriented margins and sigmoid penalties.}
-For each critical decision $d \in \mathcal{K}$, define a signed \emph{decision
-score} $s_d(\omega;x)$ produced by the predictor, such that the sign of
-$s_d$ encodes the model's preferred outcome for $d$ (e.g., ``$i$ before $j$'').
-We then replace the hard, non-differentiable decision indicator by a smooth
-sigmoid approximation.
+We replace the hard, non-differentiable decision indicator by a smooth sigmoid approximation.
 To ensure the surrogate penalizes the \emph{wrong} outcome (rather than
 encouraging a fixed sign), we orient each decision score using the true
 parameters.
