@@ -585,7 +585,7 @@ In the absence of established benchmarks, these two datasets support systematic 
 
     \item \textbf{Problem 2 (Flow Shop) Generation.} We generate durations for two machines, $m_1$ and $m_2$:
     \begin{itemize}
-        \item \emph{Linear model:} Generated similarly to Problem 1.
+        \item \emph{Linear model:} Generated similarly to Problem 1. \todo[inline]{to fix as for NonLinear}
         \item \emph{Nonlinear model:} To ensure a balanced probability of assigning jobs to groups $G_1$ and $G_2$ (see Section~\ref{sec:flowshop}), we use the function $g(\mathbf{x})$ defined above:
         \[
         \begin{aligned}
@@ -594,78 +594,88 @@ In the absence of established benchmarks, these two datasets support systematic 
         \end{aligned}
         \]
     \end{itemize}
-\end{itemize}
-
-The functions were chosen to ensure that the learning task remains nontrivial, requiring the model to capture both local and global feature dependencies, while still being interpretable and reproducible.
+\end{itemize} The functions were chosen to ensure that the learning task remains nontrivial, requiring the model to capture both local and global feature dependencies, while still being interpretable and reproducible.
 
 To ensure strictly positive durations, constants of $100$ and $500$ were added to the final task durations for the Problem~1 and Problem~2 datasets, respectively. Finally, gaussian noise with standard deviation $\eta$ was added to simulate uncertainty.
 
 \paragraph{Benchmark methods.}
 
-We compared our method with two predict-and-optimize approaches, \emph{SPO+} and the $MSE$, as well as with a learn-to-rank (LTR) surrogate loss.
-\emph{SPO+} is a convex surrogate loss designed for predict-and-optimize tasks \cite{elmachtoub2022smart}, which focuses predictions on minimizing decision regret.
-In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes incorrect pairwise orderings based on their difference, without relying on the specifics of the scheduling problem.
-Specifically, for each job pair $(i,j)$ we define the surrogate loss as $\sigma(\Delta_{ij})$ based on Problem~1 and 2.
+For both Problem configurations, we compare our method with a \emph{predict-and-optimize} solution via MSE and other two \emph{Smart Predict, then Optimize} baselines.
+\emph{SPO+}~\cite{elmachtoub2022smart} is a specific SPO implementation that uses a convex surrogate loss to train the model to minimize decision regre. In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes incorrect pairwise orderings based on their differences, without relying on the specifics of the scheduling problem.
+%\footnote{For each job pair $(i,j)$ where $i$ precedes $j$, we define the surrogate loss as $\sigma(\Delta_{ij})$, where $\Delta_{ij} = f_\omega(x_i) - f_\omega(x_j)$; this applies to both Problem~1 and Problem~2.} to put in appendix
+
+\paragraph{Experimental Procedure.}
+\label{sec:experimental_procedure}
+To enable scalability across scheduling problems of arbitrary size, we train a predictive model that is independent of the number of jobs in the input. This is achieved by formulating the learning objective in a pairwise manner, which allows the model to be trained on comparisons between two jobs and then generalizes to schedules of any length. Exhaustively comparing all possible pairwise job combinations in the training set is computationally infeasible; therefore, we adopt an approximation strategy based on sampling a subset of job pairs. Despite this approximation, Figure~\ref{fig:pairwise_number} shows that a subset of job pairs can already achieve a low SCT error compared to the optimal solution, without training on all possible pairwise comparisons. In fact, using $10000$ pairwise comparisons is already enough to reach a 3.2\% error relative to the optimal total SCT.
+    
+    
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.45\textwidth]{new_plot/analysis_number_of_pairs_2.png}
+\caption{Impact of the number of sampled pairs on performance on \emph{Nonlinear} dataset.}
+\label{fig:pairwise_number}
+\end{figure}
 
 
-\paragraph{Implementation details.}
-The experiments were implemented in Python. Specifically, each baseline was trained using the same two-hidden-layer neural network architecture with the PyTorch library and the same number of iterations. Datasets were generated according to the described models, with varying noise levels $\eta$, to evaluate the models’ robustness to prediction uncertainty. Each dataset was normalized and split into 70\% training, 10\% validation, and 20\% test subsets. 
+For MSE, LTR and our method we use the same two-hidden-layer neural network architecture, number of iterations and, finally, number of pair comparisons, to properly evaluate which of them converges first to a low error. Instead for SPO+, we use a specific hyperparameter optimisation, especially to define the batch size\footnote{In the repository \url{https://github.com/francescameneghello/....}, the implementation details are reported.}
+Each dataset is normalized and split into 70\% training, 10\% validation, and 20\% test subsets, with training performed using the Adam optimizer and early stopping.
 
 
 \paragraph{Evaluation metric.}
-Models were evaluated on the test set by comparing the SCT and Makespan achieved by predicted job orderings against those of the true optimal order, with results averaged over ten runs.
-The optimal schedule is represented by SPT and Johnson schedule under true processing times for Problem~1 and ~2, respectively.
+Models are evaluated on the full test set by comparing the SCT and Makespan of jobs ordering defined from the predicted durations of each activity within a job, against the optimal solution computed using the true durations. The optimal schedule corresponds to the SPT rule for Problem~1 and the Johnson schedule for Problem~2.
 
 
 \subsection{Results}
 
-Table~\ref{tab:linear_nonlinear_SCT} presents a comparison of SPO+, Rank Loss, MSE and the proposed sigmoid surrogate on linear and nonlinear datasets under different level of noise $\eta$. Regarding the linear datasets, the sigmoid surrogate demonstrates robustness across noise levels, consistently achieving lower SCT compared to all the baselines.
 
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
-\begin{tabular}{@{}>{\cellcolor{lightgray}}l@{\hskip 0.2in}lccccccc@{}} % extra column for vertical label
+\resizebox{0.85\columnwidth}{!}{
+\begin{tabular}{lcccc}
 \toprule
-\cellcolor{white} & Method & \multicolumn{6}{c}{Noise Level $\eta$} \\
- \cellcolor{white} &        & 0 & 2 & 4 & 6 & 8 & 10 \\
+\textbf{Method} & \multicolumn{4}{c}{\textbf{Dataset Size}} \\
+                 & 5000 & 10000 & 50000 & 100000 \\
 \midrule
- & MSE        & 0.576$\pm$0.28 & 0.363$\pm$0.26 & 0.359$\pm$0.12 & 0.701$\pm$0.25 & 0.706$\pm$0.15 & 1.132$\pm$0.16 \\
- & Rank Loss  & 0.225$\pm$0.05 & 0.284$\pm$0.05 & 0.356$\pm$0.04 & 0.494$\pm$0.04 & 0.647$\pm$0.06 & 0.976$\pm$0.06 \\
- & Regret Loss & \textbf{0.209}$\pm$0.04 & \textbf{0.222}$\pm$0.05 & \textbf{0.270}$\pm$0.03 & \textbf{0.402}$\pm$0.02 & \textbf{0.622}$\pm$0.03 & \textbf{0.954}$\pm$0.04 \\
- \multirow{-4}{*}{\rotatebox[origin=c]{90}{\textbf{Linear}}}  & SPO+       & 29.135$\pm$0.18 & 13.419$\pm$0.24 & 6.607$\pm$1.09 & 35.705$\pm$0.24 & 14.961$\pm$0.08 & 25.287$\pm$1.25 \\
-\midrule
-& MSE     & \textbf{2.264}$\pm$0.28 & 2.778$\pm$0.42 & 2.780$\pm$0.20 & 2.679$\pm$0.30 & 3.126$\pm$0.23 & 3.623$\pm$0.19 \\
-& Rank Loss  & 2.614$\pm$0.07 & 2.748$\pm$0.10 & 2.753$\pm$0.07 & 3.017$\pm$0.04 & 3.192$\pm$0.06 & 3.544$\pm$0.07 \\
-& Regret Loss & 2.621$\pm$0.10 & \textbf{2.584}$\pm$0.09 & \textbf{2.748}$\pm$0.07 & \textbf{2.932}$\pm$0.09 & \textbf{3.076}$\pm$0.10 & \textbf{3.399}$\pm$ 0.07\\
-\multirow{-4}{*}{\rotatebox[origin=c]{90}{\textbf{NonLinear}}} & SPO+ & 17.746$\pm$1.80 & 19.784$\pm$0.08 & 16.416$\pm$0.09 & 22.234$\pm$0.09 & 19.753$\pm$0.12 & 13.816$\pm$0.15 \\
+MSE         & 2.79s & 2.71s & 9.68s & 21.62s \\
+LTR   & 25.12s & 30.81s & 35.79s & 45.05s \\
+Regret Loss & 28.64s & 33.26s & 41.57s & 52.59s \\
+SPO+        & 26.15s & 59.82s & 23.746s & 24.246s \\
 \bottomrule
-\end{tabular}
-\caption{SCT errors across linear and nonlinear datasets of size $10000$ with different noise level.}
-\label{tab:linear_nonlinear_SCT}
-\end{table*}
+\end{tabular}}
+\caption{Training times across different nonlinear dataset sizes with noise $10$, computed over $10$ runs.}
+\label{tab:times_training}
+\end{table}
 
+Table~\ref{tab:times_training} reports the training times for different nonlinear dataset sizes with noise level $5$. As observed, the fastest method is MSE, but it grows roughly with the dataset size since it compares all elements. In contrast, LTR and Regret Loss exhibit scale more smoothly thanks to pairwise approximation (Section~\ref{sec:experimental_procedure}).
+Regarding SPO+, we observe that its training time is independent of the dataset size but depends on the specific problem instance and, consequently, on the gradient of the problem. Additionally, SPO+ requires hyperparameter optimization, taking roughly 40 minutes per dataset and noise level, to achieve comparable performance, and it typically needs $5000$ iterations instead of the $1000$ used by the other methods.
 
-\begin{table*}[t]
+\begin{figure}[t]
 \centering
-\begin{tabular}{@{}>{\cellcolor{lightgray}}l@{\hskip 0.2in}lccccccc@{}} % extra column for vertical label
+\includegraphics[width=0.5\textwidth]{new_plot/nonLinear_problem1.png}
+\caption{Comparison of SPO+, Rank Loss, and the proposed surrogate method on \emph{Nonlinear} datasets of size $10000$. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
+\label{fig:nonLinear_dataset_1_machine_problem}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\resizebox{0.45\textwidth}{!}{
+\begin{tabular}{lcccccc}
 \toprule
-\cellcolor{white} & Method & \multicolumn{6}{c}{Noise Level $\eta$} \\
- \cellcolor{white} &        & 0 & 2 & 4 & 6 & 8 & 10 \\
+\textbf{Loss} & \multicolumn{6}{c}{\textbf{Noise Level}} \\
+              & 0 & 2 & 4 & 6 & 8 & 10 \\
 \midrule
- & MSE        & \textbf{0.001}$\pm$0.0007 & 0.015$\pm$0.017 & 0.010$\pm$0.008 & \textbf{0.010}$\pm$ & \textbf{0.016}$\pm$ & 0.022$\pm$\\
- & Rank Loss  & 0.061$\pm$0.025 & 0.067$\pm$0.015 & 0.057$\pm$0.015 & 0.058$\pm$ & 0.072$\pm$ & 0.105$\pm$  \\
- & Regret Loss & 0.004$\pm$0.003 & \textbf{0.011}$\pm$0.006 & \textbf{0.008}$\pm$0.005 & 0.015$\pm$ & 0.019$\pm$ & \textbf{0.013}$\pm$ \\
- \multirow{-4}{*}{\rotatebox[origin=c]{90}{\textbf{Linear}}}  & SPO+  & $\pm$ & $\pm$ & $\pm$ & $\pm$ & $\pm$ & $\pm$ \\
-\midrule
-& MSE     & 0.017$\pm$ & 0.045$\pm$ & 0.074$\pm$ & \textbf{0.143}$\pm$ & 0.201$\pm$ & 0.197$\pm$ \\
-& Rank Loss  & 0.037$\pm$ & \textbf{0.039}$\pm$ & 0.079$\pm$ & 0.098$\pm$ & 0.146$\pm$ & $\pm$ \\
-& Regret Loss & \textbf{0.005}$\pm$ & \textbf{0.039}$\pm$ & \textbf{0.064}$\pm$ & \textbf{0.143}$\pm$ & \textbf{0.132}$\pm$ & $\pm$ \\
-\multirow{-4}{*}{\rotatebox[origin=c]{90}{\textbf{NonLinear}}} & SPO+ & $\pm$ & $\pm$ & $\pm$ & $\pm$ & $\pm$ & $\pm$ \\
+MSE Loss     & 0.576 & 0.363 & 0.359 & 0.701 & 0.706 & 1.132 \\
+Rank Loss    & 0.225 & 0.284 & 0.356 & 0.494 & 0.647 & 0.976 \\
+Regret Loss  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
+SPO          & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
 \bottomrule
-\end{tabular}
-\caption{SCT errors across linear and nonlinear datasets of size $10000$ with different noise level on Problem~2.}
-\label{tab:linear_nonlinear_SCT_flowshop}
-\end{table*}
+\end{tabular}}
+\caption{SCT error across different noise level $\eta$ over linear dataset with size $10000$.}
+\label{tab:loss_means}
+\end{table}
+
+
 
 
 
@@ -764,6 +774,7 @@ Future work will extend this decision-aware paradigm to complex multi-stage sche
 \bibliography{mybibfile}
 
 \newpage
+\newpage
 \appendix
 
 \section{Technical Appendix}
@@ -829,38 +840,18 @@ In Problem 2, it approximates the makespan regret via the aggregated Johnson swa
 \end{proof}
 
 
-\section{Implementation details}
 
-We aim to address a wider range of scheduling problems in terms of problem size; therefore, we train a general predictive model that is independent of the number of jobs in the input schedule. To achieve this, during the training phase, the neural network schedules the entire training set. Considering all possible combinations of job sets of different lengths is infeasible; therefore, we adopt an approximation by sampling pairwise combinations. Moreover, we show that sampling only a subset of all possible pairs is sufficient to learn the relative ordering, as illustrated in Figure~\ref{fig:pairwise_number}.
-    
-    
-    \begin{figure}[t]
-        \centering
-        \includegraphics[width=0.45\textwidth]{new_plot/analysis_number_of_pairs.png}
-        \caption{Impact of the number of sampled pairs on performance.}
-        \label{fig:pairwise_number}
-    \end{figure}
+
 
 \section{Additional results}
 
-\begin{table}[t]
+\begin{figure}[t]
 \centering
-\resizebox{0.95\columnwidth}{!}{
-\begin{tabular}{lcccccccc}
-\toprule
-\multirow{3}{*}{Method} & \multicolumn{8}{c}{Dataset Size} \\
-                         & \multicolumn{2}{c}{5000} & \multicolumn{2}{c}{10000} & \multicolumn{2}{c}{50000} & \multicolumn{2}{c}{100000} \\
-                         & SCT & Time & SCT & Time & SCT & Time & SCT & Time \\
-\midrule
-MSE         & 3.027 & 2.794s & 2.798 & 2.719s & 2.767 & 9.685s & 3.037 & 21.624s \\
-Rank Loss   & 2.789 & 25.121s & 2.924 & 30.814s & 2.873 & 35.796s & 2.974 & 45.054s \\
-Regret Loss & \textbf{2.605} & 28.646s & \textbf{2.793} & 33.265s & 2.879 & 41.57s & \textbf{2.920} & 52.593s \\
-SPO+        & 21.276 & 72.2s & 12.356 & 71.981s & 11.591 & 65.29s & 20.757 & 72.5s \\
-\bottomrule
-\end{tabular}}
-\caption{SCT errors and training times across different dataset sizes.}
-\label{tab:linear}
-\end{table}
+\includegraphics[width=0.5\textwidth]{new_plot/linearDataset_problem1.png}
+\caption{Comparison of SPO+, Rank Loss, and the proposed surrogate method on \emph{linear} datasets of size $10000$. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
+\label{fig:nonLinear_dataset_1_machine_problem}
+\end{figure}
+
 
 
 
