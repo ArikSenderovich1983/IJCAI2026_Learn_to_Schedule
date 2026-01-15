@@ -49,7 +49,7 @@
   {\par}
 
 % Title and authors (placeholders to be updated)
-\title{Surrogate-Based Smart Predict and Schedule}
+\title{SASS: Structure-Aware Surrogate Scheduling}
 
 \author{Anonymous}
 \begin{document}
@@ -58,12 +58,13 @@
 
 \begin{abstract}
 Task scheduling under uncertainty is a fundamental challenge in artificial intelligence and operations research, with applications in manufacturing, logistics, cloud computing, and healthcare.
-Smart predict-and-optimize (SPO) methods address this challenge by learning predictive models that directly minimize decision regret, but in practice they struggle with non-differentiable objectives and the discrete nature of optimal scheduling rules.
-We propose a surrogate-based framework for smart predict-and-schedule that views polynomial-time scheduling algorithms,
-such as shortest-processing-time (SPT), earliest-due-date (EDD), FIFO, and Johnson's rule,
-as collections of critical decisions, and attaches to each decision a smooth sigmoid-based penalty weighted by its contribution to the scheduling objective.
-We instantiate this framework on two classical problems: (i) single-machine scheduling with the sum of completion times (SCT) objective, where misordered job pairs are weighted by their SCT increase, and (ii) the two-machine flow shop with makespan minimization, where misclassified groups and misordered jobs are weighted by the corresponding Johnson swap costs.
-Experiments on synthetic SCT benchmarks and a real-world outpatient scheduling dataset from a cancer hospital show that our approach reduces relative scheduling error by 10--34\% compared to state-of-the-art baselines and achieves the best performance for the majority of case study months.
+Smart predict-and-optimize (SPO) aims to train predictors by minimizing downstream decision regret, but in scheduling this is challenging due to non-differentiable regret and the discrete, brittle dependence of optimal rules on predictions.
+We focus on a class of \emph{surrogate-friendly scheduling problems} where the deterministic optimum is given by a known polynomial-time rule (e.g., SPT, Johnson's rule) that can be decomposed into a finite set of critical decisions (pairwise orderings, threshold tests, or group assignments).
+We propose \emph{SASS}, a structure-aware surrogate training approach that replaces these discrete decisions with smooth sigmoid penalties and weights each penalty by the local impact of that decision on the scheduling objective.
+The learned model is then \emph{plugged back} into the original polynomial-time rule at inference time.
+We instantiate SASS for (i) single-machine scheduling with the sum of completion times (SCT) objective, and (ii) the two-machine flow shop with makespan minimization via Johnson's rule.
+On synthetic benchmarks, SASS is substantially more stable than SPO+ under increasing noise and is competitive with predict-then-optimize (MSE) baselines.
+On a real-world outpatient scheduling dataset from a cancer hospital, SASS achieves the lowest relative SCT error in 11 out of 12 months and improves average error by 10--34\% over standard baselines.
 \end{abstract}
 
 \section{Introduction}
@@ -76,36 +77,33 @@ In reality, however, these parameters are uncertain and must be inferred from hi
 This mismatch between deterministic models and stochastic environments motivates the development of data-driven decision-making methods that explicitly account for uncertainty in both prediction and optimization.
 
 Smart predict-and-optimize (SPO) methods offer one such paradigm~\cite{elmachtoub2022smart}.
-Rather than learning to predict task parameters in isolation, SPO couples prediction with downstream optimization by minimizing empirical \emph{decision regret}: the difference between the objective value of the decision induced by learned predictions and that of the optimal decision under the true parameters.
-Despite their conceptual appeal, SPO methods face two major challenges in practice.
-First, the regret objective is often non-differentiable, making gradient-based learning difficult.
-Second, even when differentiable surrogates such as SPO+ are available~(\citeauthor{elmachtoub2020decisiontrees}~\citeyear{elmachtoub2020decisiontrees}), they may be poorly aligned with the structure of specific scheduling rules and can exhibit unstable training behaviour, especially when small changes in predictions lead to large changes in the optimal schedule.
+Rather than learning task parameters in isolation, SPO trains predictors to minimize \emph{decision regret}: the gap between the objective value achieved by decisions induced from predictions and the objective value of the optimal decision under the true parameters.
+However, in scheduling, regret is typically non-differentiable and the mapping from predicted parameters to the optimal schedule can be discrete and brittle, which makes direct SPO training challenging.
 
-In this paper, we develop a surrogate-based framework that addresses these challenges for a broad class of polynomial-time scheduling algorithms.
-The key idea is to exploit the structure of known optimal dispatching rules and view them as finite sets of \emph{critical decisions} (e.g., pairwise orderings or group assignments) that fully determine the resulting schedule.
-For each decision, we construct a smooth sigmoid-based penalty whose argument is a signed decision score and whose weight reflects the local impact of that decision on the scheduling objective (e.g., SCT increase or makespan increase).
-This yields a differentiable ``ReLU-over-decision'' surrogate that penalizes costly misdecisions while remaining largely neutral on confidently correct ones, providing stable gradients that focus on ambiguous or high-impact decisions.
+We take a different route that is tailored to a class of \emph{surrogate-friendly scheduling problems}:
+settings in which the deterministic optimum is given by a known polynomial-time rule and the rule itself reveals a small set of \emph{critical decisions} (e.g., pairwise precedence comparisons or group assignments) that determine the final schedule.
+For this class, we propose \emph{SASS} (Structure-Aware Surrogate Scheduling): a problem-inspired surrogate loss that replaces each discrete critical decision by a smooth sigmoid penalty and weights that penalty by the decision's local impact on the scheduling objective (e.g., increase in SCT or makespan).
+At inference time, we use the learned predictor inside the original polynomial-time rule, preserving interpretability and fast deployment.
 
-Our primary case study is the single-machine SCT minimization problem, where we introduce a sigmoid-based surrogate that directly approximates regret by weighting misordered task pairs by their contribution to SCT.
-We further show how the same principles extend to a two-machine flow shop with makespan minimization, where the deterministic optimal policy is given by Johnson's rule and the surrogate weights misgroupings and misorderings by the corresponding Johnson swap costs.
-Across both problems, the resulting surrogates retain the interpretability of classical algorithms while enabling flexible learning with neural networks.
+We instantiate SASS for two classical problems where the deterministic optimum is known: (i) single-machine SCT minimization (SPT rule), and (ii) two-machine flow shop makespan minimization (Johnson's rule).
+In both cases, the surrogate is decision-structured and objective-weighted, yielding stable gradients that focus learning on ambiguous and high-impact decisions.
 
-To validate our approach, we conduct extensive experiments on synthetic and real-world datasets.
-On synthetic instances of the SCT problem, our surrogate remains stable even under extreme noise, whereas SPO+ diverges.
-On a large-scale outpatient scheduling dataset from a cancer hospital, our method achieves the lowest relative SCT error in 11 out of 12 months, outperforming mean-squared-error and ranking baselines by roughly 10\% and SPO+ by 34\%.
+To validate this positioning, we compare SASS against predict-then-optimize (MSE), a learn-to-rank baseline, and SPO+.
+On synthetic instances, MSE may achieve lower average error in some regimes, but SASS is markedly more stable under increasing noise and consistently outperforms SPO+.
+On a large-scale outpatient scheduling dataset from a cancer hospital, SASS achieves the lowest relative SCT error in 11 out of 12 months.
 
 Our contributions can be summarized as follows:
 \begin{enumerate}
-    \item We propose a surrogate-based framework for smart predict-and-schedule that views polynomial-time scheduling rules (e.g., SPT, EDD, FIFO, Johnson's rule) as sets of critical decisions and derives differentiable sigmoid-based losses at the decision level.
-    \item We instantiate this framework on two classical scheduling problems: (i) single-machine SCT minimization and (ii) two-machine flow shop makespan minimization, deriving problem-specific surrogates that weight each decision by its contribution to SCT or makespan.
-    \item We empirically evaluate our approach on synthetic SCT benchmarks and a real-world hospital scheduling dataset, demonstrating consistent improvements over state-of-the-art SPO, learn-to-rank, and predict-then-optimize baselines.
+    \item We introduce \emph{surrogate-friendly scheduling problems}, a class where the deterministic optimum is given by a known polynomial-time rule that decomposes into a finite set of critical decisions.
+    \item For this class, we propose \emph{SASS}, a structure-aware, objective-weighted surrogate training approach that learns decision-relevant scores and plugs them into the original rule at inference time.
+    \item We instantiate SASS on single-machine SCT minimization (SPT) and two-machine flow shop makespan minimization (Johnson), and evaluate on synthetic benchmarks and a real-world hospital scheduling dataset, demonstrating strong stability and improved performance over SPO+ in our settings.
 \end{enumerate} The remainder of the paper is organized as follows.
 Section~\ref{sec:framework} introduces our general predict-and-schedule framework.
 Sections~\ref{sec:problem1} and~\ref{sec:flowshop} instantiate this framework for single-machine SCT minimization and two-machine flow shop makespan minimization, respectively.
 Section~\ref{sec:evaluation} presents experimental results on synthetic benchmarks, followed by a real-world case study in patient scheduling in Section~\ref{sec:case_study}.
 We discuss related work in Section~\ref{sec:related_work} and conclude in Section~\ref{sec:conclusion}.
 
-\section{Surrogate-Based Predict-and-Optimize}
+\section{SASS: Surrogate-Friendly Predict-and-Schedule}
 \label{sec:framework}
 
 This section makes the paper's core premise explicit: many classical
@@ -563,7 +561,7 @@ Finally, we present the main experimental results and discuss the applicability 
 
 \subsection{Experimental Setup}
 
-Experiments were conducted on synthetically generated datasets to evaluate the performance of the sigmoid-based surrogate loss under a range of scheduling scenarios.
+Experiments were conducted on synthetically generated datasets to evaluate the performance of the proposed SASS surrogate loss under a range of scheduling scenarios.
 The experiments systematically varied data generation models, noise levels, uncertainty level on task duration, and benchmark comparisons.
 
 \paragraph{Datasets.}
@@ -639,7 +637,7 @@ Models are evaluated on the full test set by comparing the SCT and Makespan of j
 \midrule
 MSE         & 2.79s & 2.71s & 9.68s & 21.62s \\
 LTR   & 25.12s & 30.81s & 35.79s & 45.05s \\
-Regret Loss & 28.64s & 33.26s & 41.57s & 52.59s \\
+SASS (ours) & 28.64s & 33.26s & 41.57s & 52.59s \\
 SPO+        & 26.15s & 59.82s & 23.746s & 24.246s \\
 \bottomrule
 \end{tabular}}
@@ -647,7 +645,7 @@ SPO+        & 26.15s & 59.82s & 23.746s & 24.246s \\
 \label{tab:times_training}
 \end{table}
 
-Table~\ref{tab:times_training} reports the training times for different nonlinear dataset sizes with noise level $5$. As observed, the fastest method is MSE, but it grows roughly with the dataset size since it compares all elements. In contrast, LTR and Regret Loss exhibit scale more smoothly thanks to pairwise approximation (Section~\ref{sec:experimental_procedure}).
+Table~\ref{tab:times_training} reports the training times for different nonlinear dataset sizes with noise level $5$. As observed, the fastest method is MSE, but it grows roughly with the dataset size since it compares all elements. In contrast, LTR and SASS (ours) scale more smoothly thanks to pairwise approximation (Section~\ref{sec:experimental_procedure}).
 Regarding SPO+, we observe that its training time is independent of the dataset size but depends on the specific problem instance and, consequently, on the gradient of the problem. Additionally, SPO+ requires hyperparameter optimization, taking roughly 40 minutes per dataset and noise level, to achieve comparable performance, and it typically needs $5000$ iterations instead of the $1000$ used by the other methods.
 
 \begin{figure}[t]
@@ -667,7 +665,7 @@ Regarding SPO+, we observe that its training time is independent of the dataset 
 \midrule
 MSE Loss     & 0.576 & 0.363 & 0.359 & 0.701 & 0.706 & 1.132 \\
 Rank Loss    & 0.225 & 0.284 & 0.356 & 0.494 & 0.647 & 0.976 \\
-Regret Loss  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
+SASS (ours)  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
 SPO          & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
 \bottomrule
 \end{tabular}}
@@ -682,7 +680,7 @@ SPO          & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
 \section{Case Study: Patient Scheduling}
 \label{sec:case_study}
 
-We evaluate the proposed sigmoid-based surrogate loss on a real-world dataset
+We evaluate the proposed SASS surrogate loss on a real-world dataset
 from \textit{DayHospital}, a U.S.\ cancer clinic. We describe the setting,
 experimental protocol, and results.
 
@@ -696,19 +694,19 @@ diagnosis, appointment type, and a linkage indicator for subsequent infusions.
 To simulate deployment, we use a rolling-horizon split, training on the first three weeks of each month and evaluating on the fourth.
 
 
-We compare our sigmoid-based surrogate against three baselines: (i) \emph{Rank Loss} (pairwise negative log-likelihood), (ii) \emph{Mean Squared Error (MSE)} (predict-then-optimize), and (iii) \emph{SPO+} (a convex decision-aware surrogate).
+We compare SASS against three baselines: (i) \emph{Rank Loss} (pairwise negative log-likelihood), (ii) \emph{Mean Squared Error (MSE)} (predict-then-optimize), and (iii) \emph{SPO+} (a convex decision-aware surrogate).
 All models are two-layer feedforward neural networks trained with Adam.
 Performance is measured by the \emph{relative SCT error}, defined as the normalized difference between the SCT of the predicted schedule and the optimal SCT under true durations.
 
 \subsection{Results}
 
 Table~\ref{tab:monthly-sct} reports the relative SCT error across the full year (January--December 2021).
-Our sigmoid-based method achieves the lowest error in 11 out of 12 months, with an average error of \textbf{0.316}, compared to 0.353 for MSE, 0.338 for LTR, and 0.476 for SPO+.
+SASS achieves the lowest error in 11 out of 12 months, with an average error of \textbf{0.316}, compared to 0.353 for MSE, 0.338 for LTR, and 0.476 for SPO+.
 
 \begin{table}[t]
 \centering
 \caption{Final relative SCT errors across months of 2021 for each method.
-Average values: SPO+= 0.476, LTR= 0.338, MSE= 0.353, and Regret Loss= \textbf{0.316}.}
+Average values: SPO+= 0.476, LTR= 0.338, MSE= 0.353, and SASS (ours)= \textbf{0.316}.}
 \label{tab:monthly-sct}
 \begin{tabular}{lcccccc}
 \toprule
@@ -717,14 +715,14 @@ Method & Jan & Feb & Mar & Apr & May & Jun \\
 SPO+        & 0.48 & 0.56 & 0.53 & 0.53 & 0.52 & 0.42 \\
 LTR         & 0.33 & 0.36 & 0.33 & 0.35 & 0.33 & 0.33 \\
 MSE         & 0.35 & 0.38 & 0.36 & 0.35 & 0.34 & 0.34 \\
-Regret Loss & \textbf{0.31} & \textbf{0.34} & \textbf{0.33} & \textbf{0.33} & \textbf{0.30} & \textbf{0.31} \\
+SASS (ours) & \textbf{0.31} & \textbf{0.34} & \textbf{0.33} & \textbf{0.33} & \textbf{0.30} & \textbf{0.31} \\
 \midrule
 Method & Jul & Aug & Sep & Oct & Nov & Dec \\
 \midrule
 SPO+        & 0.48 & 0.38 & 0.40 & 0.49 & 0.42 & 0.50 \\
 LTR         & 0.33 & \textbf{0.28} & 0.34 & 0.32 & 0.37 & 0.38 \\
 MSE         & 0.33 & 0.31 & 0.34 & 0.36 & 0.37 & 0.41 \\
-Regret Loss & \textbf{0.30} & 0.29 & \textbf{0.31} & \textbf{0.29} & \textbf{0.33} & \textbf{0.35} \\
+SASS (ours) & \textbf{0.30} & 0.29 & \textbf{0.31} & \textbf{0.29} & \textbf{0.33} & \textbf{0.35} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -735,7 +733,7 @@ Figure~\ref{fig:real-data-jan} shows the training trajectory for a representativ
     \centering
     \includegraphics[width=0.5\textwidth]{LossComparison_Jan.png}
     \caption{Relative SCT error during training on the real-world Exam scheduling dataset for January 2021.
-    The sigmoid-based regret loss consistently achieves lower SCT error compared to Rank Loss, MSE Loss, and SPO+.}
+    The SASS surrogate loss consistently achieves lower SCT error compared to Rank Loss, MSE Loss, and SPO+.}
     \label{fig:real-data-jan}
 \end{figure}
 
