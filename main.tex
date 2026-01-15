@@ -106,15 +106,15 @@ We discuss related work in Section~\ref{sec:related_work} and conclude in Sectio
 \section{SASS: Surrogate-Friendly Predict-and-Schedule}
 \label{sec:framework}
 
-This section makes the paper's core premise explicit: many classical
-\emph{polynomial-time scheduling rules} can be expressed as collections of
-\emph{critical decisions} (comparisons, threshold tests, and group assignments)
-that fully determine the resulting schedule.
-We use this view to derive smooth, decision-level surrogate losses for
-smart predict-and-schedule.
-While the same idea can sometimes be transferred to other decision problems, we
-do not claim universal applicability beyond settings where such a decomposition
-is available.
+This section states the paper's core premise and positioning.
+We focus on \emph{surrogate-friendly scheduling problems}: settings where (i) the
+deterministic optimum is given by a known polynomial-time algorithm
+$\mathcal{A}$, and (ii) $\mathcal{A}$ can be decomposed into a finite set of
+\emph{critical decisions} (comparisons, threshold tests, group assignments) that
+determine the schedule.
+For this class, SASS replaces the discrete decisions of $\mathcal{A}$ with a
+smooth, objective-weighted surrogate loss and then plugs the learned predictor
+back into $\mathcal{A}$ at inference time.
 
 \subsection{Problem Setting}
 
@@ -129,9 +129,9 @@ is the set of feasible schedules for the environment under study.
 The resulting objective value under the true parameters is $C(\pi;\theta^\star)$,
 where $C$ may represent, for example, sum of completion times or makespan.
 
-The learning task is to learn
-$\hat{\theta} = f_\omega(x)$ (with parameters $\omega$) by minimizing
-the regret of using $\pi(\hat{\theta})$ instead of the
+The learning task is to learn a predictor $\hat{\theta}=f_\omega(x)$ (with
+parameters $\omega$) that yields good schedules under the downstream objective.
+In an SPO view, one would minimize the regret of using $\pi(\hat{\theta})$ instead of the
 optimal solution, namely
 \begin{equation}
 \label{eq:regret-general}
@@ -142,10 +142,10 @@ C(\pi(\hat{\theta});\theta^\star)
 C(\pi(\theta^\star);\theta^\star),
 \end{equation}
 which is generally non-differentiable with respect to~$\omega$.
-The four step framework presented 
-below addresses this challenge by exploiting problem structure.
+SASS does not attempt to optimize~\eqref{eq:regret-general} directly.
+Instead, it constructs a differentiable surrogate by exploiting the decision structure of $\mathcal{A}$.
 
-\noindent\textbf{Step 1: Identify Unknown Parameters (or Decision-Relevant Scores).}
+\noindent\textbf{Step 1: Choose prediction targets (parameters or decision-relevant scores).}
 For each job $i$, define the unknown parameter vector $\theta_i^\star$ governing
 its contribution to the optimization problem (e.g., processing times, due dates,
 or machine-dependent durations).
@@ -156,7 +156,8 @@ In some problems, it is convenient for $f_\omega$ to predict not the raw
 parameters $\theta$ directly, but a set of \emph{decision-relevant scores} that
 parameterize the critical decisions of the deterministic algorithm (Step~2).
 
-\noindent\textbf{Step 2: Identify a Deterministic Polynomial-Time Counterpart.} Many optimization problems become tractable when $\theta^\star$ is known.
+\noindent\textbf{Step 2: Specify the deterministic optimal rule and its critical decisions.}
+Many scheduling problems become tractable when $\theta^\star$ is known.
 Suppose that, for known parameters $\theta$, the deterministic variant admits a
 polynomial-time algorithm $\mathcal{A}$ that returns an optimal decision:
 \[
@@ -168,17 +169,14 @@ Such algorithms typically reveal a structural decomposition
 $\mathcal{A}(\theta)$ that induces partitions, rankings, or threshold decisions.
 This structure is key for constructing differentiable surrogates.
 
-\noindent\textbf{Step 3: Derive a Smooth Surrogate from $\mathcal{A}$.} The deterministic algorithm $\mathcal{A}$ induces a discrete mapping from
+\noindent\textbf{Step 3: Build an objective-weighted, smooth surrogate.}
+The deterministic algorithm $\mathcal{A}$ induces a discrete mapping from
 parameters~$\theta$ to decisions~$\pi$.
-To train a neural network via gradient
-descent, we replace this mapping with a differentiable surrogate loss
-$L_{\mathrm{surr}}$ that approximates the regret in
-(\ref{eq:regret-general}).
-Unlike generic SPO approaches that treat the optimization oracle as a black box (e.g., via convex relaxations), our framework explicitly models the critical decision boundaries of the polynomial-time algorithm.
-This ``white-box'' approach bridges the gap between learning-to-rank and decision-focused learning.
-The construction follows three principles:
+SASS replaces this mapping with a differentiable surrogate loss that mirrors the critical decisions of $\mathcal{A}$ and weights errors by their objective impact.
+Compared to treating the optimization oracle as a black box, this ``white-box'' construction yields simpler gradients and avoids repeatedly solving a hard optimization problem during training.
+The construction follows three ingredients:
 
-\paragraph{(a) Structural decomposition.}
+\paragraph{(a) Critical decisions.}
 Let $\mathcal{A}$ determine a schedule through a finite set of \emph{critical
 decisions} $\mathcal{K}$, such as:
 (i) pairwise precedence comparisons (e.g., SPT/EDD/FIFO-style ordering
@@ -187,7 +185,7 @@ partition into two groups).
 Some rules in $\mathcal{K}$
 are per-job classification decisions, while others are pairwise job comparisons.
 
-\paragraph{(b) Sigmoid relaxations.}
+\paragraph{(b) Oriented margins and sigmoid penalties.}
 For each critical decision $d \in \mathcal{K}$, define a signed \emph{decision
 score} $s_d(\omega;x)$ produced by the predictor, such that the sign of
 $s_d$ encodes the model's preferred outcome for $d$ (e.g., ``$i$ before $j$'').
@@ -199,15 +197,14 @@ parameters.
 Specifically, define a \emph{signed correctness margin}
 $m_d(\omega;x,\theta^\star)$ such that $m_d>0$ when the model agrees with the
 ground-truth decision for $d$ (with margin) and $m_d<0$ otherwise.
-In other words, $s_d$ is the model's \emph{raw} score, while $m_d$ is the \emph{oriented correctness margin}: we set $m_d$ such that $m_d > 0$ if and only if the decision implied by $s_d$ matches the ground truth.
-For example, if $s_d$ predicts ``$i$ before $j$'' but the true order is $j$ before $i$, we set $m_d = -s_d$.
+Equivalently, $m_d$ is $s_d$ multiplied by the label induced by $\theta^\star$, so that the correct side of the decision boundary corresponds to $m_d>0$.
 We then use the smooth misclassification indicator
 \[
 \sigma\!\left( -\frac{m_d(\omega;x,\theta^\star)}{\lambda} \right),
 \]
 where $\lambda>0$ controls sharpness around the boundary, $s_d=0$.
 
-\paragraph{(c) Weighted aggregation.}
+\paragraph{(c) Objective-weighted aggregation.}
 The surrogate loss is assembled as a weighted sum over critical decisions:
 \begin{equation}
 \label{eq:general-surrogate}
@@ -226,7 +223,8 @@ decisions, while for $\lambda>0$ it remains smooth and trainable with gradient
 descent.
 Key properties of this surrogate, including differentiability and convergence to regret, are analyzed in the Technical Appendix.
 
-\noindent\textbf{Step 4: Train the Prediction Model.} The neural network $f_\omega$ is trained by minimizing the surrogate loss:
+\noindent\textbf{Step 4: Train and deploy via the original rule.}
+The neural network $f_\omega$ is trained by minimizing the surrogate loss:
 \[
 \omega^\star
 := 
@@ -241,12 +239,8 @@ the critical decisions; these are passed into the polynomial-time algorithm:
 :=
 \mathcal{A}(\hat{\theta}).
 \]
-We note that this approach can, in principle, be applied beyond scheduling to routing, assignment, and other
-combinatorial optimization problems in which the deterministic case is
-tractable and structurally interpretable.
-In this paper, we focus on scheduling and show an instantiation
-of the framework for two well-known scheduling problems
-under uncertainty.
+In this paper, we focus on scheduling and instantiate this framework for two
+settings where $\mathcal{A}$ is known and optimal.
 
 
 \subsection{Running Example: Outpatient Scheduling}
