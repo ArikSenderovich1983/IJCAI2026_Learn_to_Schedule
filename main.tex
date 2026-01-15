@@ -87,9 +87,7 @@ At inference time, we use the learned predictor inside the original polynomial-t
 
 We instantiate SASS for two classical problems where the deterministic optimum is known: (i) single-machine SCT minimization (SPT rule), and (ii) two-machine flow shop makespan minimization (Johnson's rule). 
 To validate this positioning, we compare SASS against predict-then-optimize (MSE), learn-to-rank (LTR), and an SPO-based baseline, namely SPO+~\cite{elmachtoub2022smart}.
-MSE is unaware of the scheduling objective and only penalizes pointwise prediction error, so improvements in MSE do not necessarily translate to better schedules.
-LTR treats scheduling as a ranking problem and learns correct orderings, but its loss is generic and does not weight mistakes by their downstream impact on the scheduling objective.
-SPO+ is a decision-aware surrogate inspired by the SPO framework that aims to reduce regret, but can be less stable in our scheduling settings where small prediction changes can induce large discrete changes in the resulting schedule.
+These baselines span objective-unaware prediction (MSE), generic ranking surrogates (LTR), and decision-aware regret surrogates (SPO+).
 
 
 On synthetic instances, MSE may achieve lower average error in some regimes, but SASS is markedly more stable under increasing noise and consistently outperforms the SPO-based baseline.
