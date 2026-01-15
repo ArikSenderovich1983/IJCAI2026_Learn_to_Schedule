@@ -63,7 +63,7 @@ We focus on a class of \emph{surrogate-friendly scheduling problems} where the d
 We propose \emph{SASS}, a structure-aware surrogate training approach that replaces these discrete decisions with smooth sigmoid penalties and weights each penalty by the local impact of that decision on the scheduling objective.
 The learned model is then \emph{plugged back} into the original polynomial-time rule at inference time.
 We instantiate SASS for (i) single-machine scheduling with the sum of completion times (SCT) objective, and (ii) the two-machine flow shop with makespan minimization via Johnson's rule.
-On synthetic benchmarks, SASS is substantially more stable than SPO+ under increasing noise and is competitive with predict-then-optimize (MSE) baselines.
+On synthetic benchmarks, SASS is substantially more stable than an SPO-based baseline under increasing noise and is competitive with predict-then-optimize (MSE) and learn-to-rank (LTR) baselines.
 On a real-world outpatient scheduling dataset from a cancer hospital, SASS achieves the lowest relative SCT error in 11 out of 12 months and improves average error by 10--34\% over standard baselines.
 \end{abstract}
 
@@ -103,7 +103,7 @@ Sections~\ref{sec:problem1} and~\ref{sec:flowshop} instantiate this framework fo
 Section~\ref{sec:evaluation} presents experimental results on synthetic benchmarks, followed by a real-world case study in patient scheduling in Section~\ref{sec:case_study}.
 We discuss related work in Section~\ref{sec:related_work} and conclude in Section~\ref{sec:conclusion}.
 
-\section{SASS: Surrogate-Friendly Predict-and-Schedule}
+\section{Surrogate-Based Predict-and-Schedule}
 \label{sec:framework}
 
 This section states the paper's core premise and positioning.
