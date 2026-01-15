@@ -88,15 +88,15 @@ At inference time, we use the learned predictor inside the original polynomial-t
 We instantiate SASS for two classical problems where the deterministic optimum is known: (i) single-machine SCT minimization (SPT rule), and (ii) two-machine flow shop makespan minimization (Johnson's rule).
 In both cases, the surrogate is decision-structured and objective-weighted, yielding stable gradients that focus learning on ambiguous and high-impact decisions.
 
-To validate this positioning, we compare SASS against predict-then-optimize (MSE), a learn-to-rank baseline, and SPO+.
-On synthetic instances, MSE may achieve lower average error in some regimes, but SASS is markedly more stable under increasing noise and consistently outperforms SPO+.
+To validate this positioning, we compare SASS against predict-then-optimize (MSE), learn-to-rank (LTR), and an SPO-based baseline (SPO+).
+On synthetic instances, MSE may achieve lower average error in some regimes, but SASS is markedly more stable under increasing noise and consistently outperforms the SPO-based baseline.
 On a large-scale outpatient scheduling dataset from a cancer hospital, SASS achieves the lowest relative SCT error in 11 out of 12 months.
 
 Our contributions can be summarized as follows:
 \begin{enumerate}
     \item We introduce \emph{surrogate-friendly scheduling problems}, a class where the deterministic optimum is given by a known polynomial-time rule that decomposes into a finite set of critical decisions.
     \item For this class, we propose \emph{SASS}, a structure-aware, objective-weighted surrogate training approach that learns decision-relevant scores and plugs them into the original rule at inference time.
-    \item We instantiate SASS on single-machine SCT minimization (SPT) and two-machine flow shop makespan minimization (Johnson), and evaluate on synthetic benchmarks and a real-world hospital scheduling dataset, demonstrating strong stability and improved performance over SPO+ in our settings.
+    \item We instantiate SASS on single-machine SCT minimization (SPT) and two-machine flow shop makespan minimization (Johnson), and evaluate on synthetic benchmarks and a real-world hospital scheduling dataset, demonstrating strong stability and improved performance over an SPO-based baseline in our settings.
 \end{enumerate} The remainder of the paper is organized as follows.
 Section~\ref{sec:framework} introduces our general predict-and-schedule framework.
 Sections~\ref{sec:problem1} and~\ref{sec:flowshop} instantiate this framework for single-machine SCT minimization and two-machine flow shop makespan minimization, respectively.
@@ -645,7 +645,7 @@ Regarding SPO+, we observe that its training time is independent of the dataset 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.5\textwidth]{new_plot/nonLinear_problem1.png}
-\caption{Comparison of SPO+, Rank Loss, and the proposed surrogate method on \emph{Nonlinear} datasets of size $10000$. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
+\caption{Comparison of SPO+, LTR, and SASS (ours) on \emph{Nonlinear} datasets of size $10000$. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
 \label{fig:nonLinear_dataset_1_machine_problem}
 \end{figure}
 
@@ -658,7 +658,7 @@ Regarding SPO+, we observe that its training time is independent of the dataset 
               & 0 & 2 & 4 & 6 & 8 & 10 \\
 \midrule
 MSE Loss     & 0.576 & 0.363 & 0.359 & 0.701 & 0.706 & 1.132 \\
-Rank Loss    & 0.225 & 0.284 & 0.356 & 0.494 & 0.647 & 0.976 \\
+LTR          & 0.225 & 0.284 & 0.356 & 0.494 & 0.647 & 0.976 \\
 SASS (ours)  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
 SPO+         & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
 \bottomrule
@@ -688,7 +688,7 @@ diagnosis, appointment type, and a linkage indicator for subsequent infusions.
 To simulate deployment, we use a rolling-horizon split, training on the first three weeks of each month and evaluating on the fourth.
 
 
-We compare SASS against three baselines: (i) \emph{Rank Loss} (pairwise negative log-likelihood), (ii) \emph{Mean Squared Error (MSE)} (predict-then-optimize), and (iii) \emph{SPO+} (a convex decision-aware surrogate).
+We compare SASS against three baselines: (i) \emph{LTR} (pairwise negative log-likelihood), (ii) \emph{Mean Squared Error (MSE)} (predict-then-optimize), and (iii) \emph{SPO+} (a convex decision-aware surrogate).
 All models are two-layer feedforward neural networks trained with Adam.
 Performance is measured by the \emph{relative SCT error}, defined as the normalized difference between the SCT of the predicted schedule and the optimal SCT under true durations.
 
@@ -727,7 +727,7 @@ Figure~\ref{fig:real-data-jan} shows the training trajectory for a representativ
     \centering
     \includegraphics[width=0.5\textwidth]{LossComparison_Jan.png}
     \caption{Relative SCT error during training on the real-world Exam scheduling dataset for January 2021.
-    The SASS surrogate loss consistently achieves lower SCT error compared to Rank Loss, MSE Loss, and SPO+.}
+    The SASS surrogate loss consistently achieves lower SCT error compared to LTR, MSE Loss, and SPO+.}
     \label{fig:real-data-jan}
 \end{figure}
 
@@ -840,7 +840,7 @@ In Problem 2, it approximates the makespan regret via the aggregated Johnson swa
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.5\textwidth]{new_plot/linearDataset_problem1.png}
-\caption{Comparison of SPO+, Rank Loss, and the proposed surrogate method on \emph{linear} datasets of size $10000$. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
+\caption{Comparison of SPO+, LTR, and SASS (ours) on \emph{linear} datasets of size $10000$. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
 \label{fig:nonLinear_dataset_1_machine_problem}
 \end{figure}
 
