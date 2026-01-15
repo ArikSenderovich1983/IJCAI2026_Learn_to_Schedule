@@ -81,16 +81,19 @@ Rather than learning task parameters in isolation, SPO trains predictors to mini
 However, in scheduling, regret is typically non-differentiable and the mapping from predicted parameters to the optimal schedule can be discrete and brittle, which makes direct SPO training challenging.
 
 We take a different route that is tailored to a class of \emph{surrogate-friendly scheduling problems}:
-settings in which the deterministic optimum is given by a known polynomial-time rule and the rule itself reveals a small set of \emph{critical decisions} (e.g., pairwise precedence comparisons or group assignments) that determine the final schedule.
+settings in which the deterministic optimum is given by a known polynomial-time rule and the rule itself reveals a set of \emph{critical decisions} (e.g., pairwise precedence comparisons or group assignments) that determine the final schedule.
 For this class, we propose \emph{SASS} (Structure-Aware Surrogate Scheduling): a problem-inspired surrogate loss that replaces each discrete critical decision by a smooth sigmoid penalty and weights that penalty by the decision's local impact on the scheduling objective (e.g., increase in SCT or makespan).
-At inference time, we use the learned predictor inside the original polynomial-time rule, preserving interpretability and fast deployment.
+At inference time, we use the learned predictor inside the original polynomial-time rule, preserving interpretability and efficiency.
 
-We instantiate SASS for two classical problems where the deterministic optimum is known: (i) single-machine SCT minimization (SPT rule), and (ii) two-machine flow shop makespan minimization (Johnson's rule).
-In both cases, the surrogate is decision-structured and objective-weighted, yielding stable gradients that focus learning on ambiguous and high-impact decisions.
+We instantiate SASS for two classical problems where the deterministic optimum is known: (i) single-machine SCT minimization (SPT rule), and (ii) two-machine flow shop makespan minimization (Johnson's rule). 
+To validate this positioning, we compare SASS against three 
+types of approaches: 1. a predict-then-optimize method that minimizes
+the mean-squared error (MSE), unaware of the scheduling objective, 2. a learn-to-rank (LTR) method
+that sees the scheduling problem as a ranking problem, and 3. an SPO-based efficient baseline dubbed SPO+ (proposed in~\cite{elmachtoub2022smart}).
 
-To validate this positioning, we compare SASS against predict-then-optimize (MSE), learn-to-rank (LTR), and an SPO-based baseline (SPO+).
+
 On synthetic instances, MSE may achieve lower average error in some regimes, but SASS is markedly more stable under increasing noise and consistently outperforms the SPO-based baseline.
-On a large-scale outpatient scheduling dataset from a cancer hospital, SASS achieves the lowest relative SCT error in 11 out of 12 months.
+On a large-scale scheduling dataset that covers one year of an outpatient cancer hospital operation, SASS achieves the lowest relative SCT error in 11 out of 12 months.
 
 Our contributions can be summarized as follows:
 \begin{enumerate}
@@ -143,7 +146,8 @@ C(\pi(\theta^\star);\theta^\star),
 \end{equation}
 which is generally non-differentiable with respect to~$\omega$.
 SASS does not attempt to optimize~\eqref{eq:regret-general} directly.
-Instead, it constructs a differentiable surrogate by exploiting the decision structure of $\mathcal{A}$.
+Instead, it constructs a differentiable surrogate by exploiting the structure of $\mathcal{A}$.
+Below, we describe the four steps of SASS.
 
 \noindent\textbf{Step 1: Choose prediction targets (parameters or decision-relevant scores).}
 For each job $i$, define the unknown parameter vector $\theta_i^\star$ governing
@@ -179,7 +183,7 @@ The construction follows three ingredients:
 \paragraph{(a) Critical decisions.}
 Let $\mathcal{A}$ determine a schedule through a finite set of \emph{critical
 decisions} $\mathcal{K}$, such as:
-(i) pairwise precedence comparisons (e.g., SPT/EDD/FIFO-style ordering
+(i) pairwise precedence comparisons (e.g., SPT-style ordering
 decisions), (ii) threshold tests, or (iii) group assignments (e.g., Johnson's
 partition into two groups).
 Some rules in $\mathcal{K}$
