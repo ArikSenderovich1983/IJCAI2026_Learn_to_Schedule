@@ -593,7 +593,7 @@ To ensure strictly positive durations, constants of $100$ and $500$ were added t
 \paragraph{Benchmark methods.}
 
 For both Problem configurations, we compare our method with a \emph{predict-and-optimize} solution via MSE and other two \emph{Smart Predict, then Optimize} baselines.
-\emph{SPO+}~\cite{elmachtoub2022smart} is a specific SPO implementation that uses a convex surrogate loss to train the model to minimize decision regre. In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes incorrect pairwise orderings based on their differences, without relying on the specifics of the scheduling problem.
+\emph{SPO+}~\cite{elmachtoub2022smart} is a specific SPO implementation that uses a convex surrogate loss to train the model to minimize decision regret. In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes incorrect pairwise orderings based on their differences, without relying on the specifics of the scheduling problem.
 %\footnote{For each job pair $(i,j)$ where $i$ precedes $j$, we define the surrogate loss as $\sigma(\Delta_{ij})$, where $\Delta_{ij} = f_\omega(x_i) - f_\omega(x_j)$; this applies to both Problem~1 and Problem~2.} to put in appendix
 
 \paragraph{Experimental Procedure.}
@@ -609,7 +609,7 @@ To enable scalability across scheduling problems of arbitrary size, we train a p
 \end{figure}
 
 
-For MSE, LTR and our method we use the same two-hidden-layer neural network architecture, number of iterations and, finally, number of pair comparisons, to properly evaluate which of them converges first to a low error. Instead for SPO+, we use a specific hyperparameter optimisation, especially to define the batch size\footnote{In the repository \url{https://github.com/francescameneghello/....}, the implementation details are reported.}
+For MSE, LTR and our method we use the same two-hidden-layer neural network architecture, number of iterations and, finally, number of pair comparisons, to properly evaluate which of them converges first to a low error. For SPO+, we use a dedicated hyperparameter optimization procedure (e.g., batch size) and a larger number of iterations where needed. Code will be available upon acceptance.
 Each dataset is normalized and split into 70\% training, 10\% validation, and 20\% test subsets, with training performed using the Adam optimizer and early stopping.
 
 
@@ -660,7 +660,7 @@ Regarding SPO+, we observe that its training time is independent of the dataset 
 MSE Loss     & 0.576 & 0.363 & 0.359 & 0.701 & 0.706 & 1.132 \\
 Rank Loss    & 0.225 & 0.284 & 0.356 & 0.494 & 0.647 & 0.976 \\
 SASS (ours)  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
-SPO          & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
+SPO+         & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
 \bottomrule
 \end{tabular}}
 \caption{SCT error across different noise level $\eta$ over linear dataset with size $10000$.}
