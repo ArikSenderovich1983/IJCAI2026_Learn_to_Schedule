@@ -333,19 +333,13 @@ L_{\text{sigmoid}}
 \;=\;
 \sum_{\substack{\theta_i^\star < \theta_j^\star}}
   R_{i,j}\,
-  \sigma\!\Bigl( \tfrac{f_\omega(x_i) - f_\omega(x_j)}{\lambda} \Bigr),
-\end{equation} A larger \(\lambda\) smooths transitions, while a smaller \(\lambda\) sharpens sensitivity to misorderings.
-
-By minimizing the empirical sigmoid loss, the learned model \(f_\omega\) is encouraged to satisfy \(f_\omega(x_j) > f_\omega(x_i)\) whenever \(\theta_j^\star > \theta_i^\star\).
-Formally:
+  \sigma\!\Bigl( \tfrac{f_\omega(x_i) - f_\omega(x_j)}{\lambda} \Bigr).
+\end{equation}
+A larger \(\lambda\) smooths the decision boundary, while a smaller \(\lambda\) sharpens sensitivity to misorderings.
+We train by minimizing $L_{\text{sigmoid}}$: correctly ordered pairs contribute near $0$, while misordered pairs are penalized proportionally to their SCT impact $R_{i,j}$.
 \[
-\omega^\star
-\;=\;
-\arg\min_{\omega}
-  L_{\text{sigmoid}}(\omega),
+\omega^\star = \arg\min_{\omega} L_{\text{sigmoid}}(\omega).
 \]
-Thus, training adjusts \(f_\omega\) to minimize the number and severity of misordered pairs, aligning predictions with true task durations.
-When \(f_\omega\) preserves correct orderings, the sigmoid term remains near zero, driving \(L_{\text{sigmoid}}\) downward.
 
 \noindent\textbf{Step 4: Train and Infer with SPT.} At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
 compute $\hat{\theta}_i=f_{\omega^\star}(x_i)$ and return
