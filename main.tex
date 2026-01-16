@@ -79,6 +79,7 @@ This mismatch between deterministic models and stochastic environments motivates
 Smart predict-and-optimize (SPO) methods offer one such paradigm~\cite{elmachtoub2022smart}.
 Rather than learning task parameters in isolation, SPO trains predictors to minimize \emph{decision regret}: the gap between the objective value achieved by decisions induced from predictions and the objective value of the optimal decision under the true parameters.
 However, in scheduling, regret is typically non-differentiable and the mapping from predicted parameters to the optimal schedule can be discrete and brittle, which makes direct SPO training challenging.
+In particular, comparison-based rules (sorting, thresholding, group assignment) can change the schedule abruptly: a small perturbation in predictions can flip a few critical decisions and yield a different permutation, producing a piecewise-constant objective with many discontinuity boundaries and unstable training signals.
 
 We take a different route that is tailored to a class of \emph{surrogate-friendly scheduling problems}:
 settings in which the deterministic optimum is given by a known polynomial-time rule and the rule itself reveals a set of \emph{critical decisions} (e.g., pairwise precedence comparisons or group assignments) that determine the final schedule.
@@ -137,6 +138,7 @@ C(\pi(\hat{\theta});\theta^\star)
 C(\pi(\theta^\star);\theta^\star),
 \end{equation}
 which is generally non-differentiable with respect to~$\omega$.
+In scheduling, this difficulty is amplified because $\pi(\hat{\theta})$ is often defined by a comparison-based rule (e.g., sorting or partitioning): as $\omega$ varies smoothly, the induced schedule can jump discontinuously when predicted scores cross, making regret hard to optimize with standard gradient methods.
 SASS does not attempt to optimize~\eqref{eq:regret-general} directly.
 Instead, it constructs a differentiable surrogate by exploiting the structure of $\mathcal{A}$.
 Below, we describe the four steps of SASS.
@@ -170,7 +172,7 @@ This explicit representation of $\mathcal{A}$ via $\mathcal{K}$ is what makes th
 The deterministic algorithm $\mathcal{A}$ induces a discrete mapping from
 parameters~$\theta$ to decisions~$\pi$.
 Given the critical decision set $\mathcal{K}$ extracted in Step~2, SASS replaces the discrete decision outcomes with a differentiable surrogate loss and weights decision errors by their objective impact.
-Compared to treating the optimization oracle as a black box, this ``white-box'' construction yields simpler gradients and avoids repeatedly solving a hard optimization problem during training.
+Compared to treating the downstream optimizer as a black box, this ``white-box'' construction yields simpler gradients and avoids relying on backpropagation through a discontinuous decision map (and repeated oracle calls) during training.
 The construction follows three ingredients:
 
 \paragraph{(a) Decision scores.}
@@ -728,7 +730,8 @@ Standard predict-then-optimize approaches (e.g.,~\cite{shahabikargar2014predicti
 The SPO framework~\cite{elmachtoub2022smart} addresses this by minimizing decision regret directly, but its non-convexity necessitates surrogates like SPO+.
 While extensions exist such as SPO Trees for interpretability~\cite{elmachtoub2020decisiontrees}, relaxation-based methods for knapsack~\cite{Mandi2020}, or RL-based constrained optimization~\cite{Silvestri2024}, these
 methods often assume deterministic parameters or struggle with nonlinear scheduling dynamics.
-In contrast, our framework directly exploits the critical-decision structure of polynomial-time rules, enabling stable learning.
+In scheduling, a further practical challenge is that the decision map induced by comparison-based rules is discontinuous: small changes in predicted parameters can flip precedence or group-assignment decisions and yield a different schedule, which makes direct regret minimization difficult to optimize with standard gradients.
+Accordingly, we benchmark against SPO+ as the standard decision-aware surrogate from the SPO line of work, and we focus on structure-aware surrogates that provide stable, objective-weighted training signals while preserving fast deployment via the known polynomial-time rule.
 
 \noindent\textbf{Semi- and domain-specific SPO.}
 Semi-SPO~\cite{Yang2023Semi,Yan2020Semi} and domain-specific methods for transport~\cite{tian2023}, manufacturing~\cite{Wang2024Refinery}, and energy~\cite{Alrasheedi2024Microgrid} employ specialized losses to improve performance.
