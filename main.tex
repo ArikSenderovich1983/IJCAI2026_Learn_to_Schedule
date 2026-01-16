@@ -304,16 +304,11 @@ R_{i,j} &= \big[(n{+}1{-}i)\, y_j + (n{+}1{-}j)\, y_i\big] -\\
 &- \big[(n{+}1{-}i)\, y_i + (n{+}1{-}j)\, y_j\big] \nonumber \\
        &= (j - i)(y_j - y_i).
 \end{align}
-We therefore seek to minimize the \emph{decision regret}, defined as the total cost of all misordered pairs.
-
-\begin{problem}{Regret minimization in SCT} \label{prob:problem1}
-Find $f_\omega$ that minimizes:
-\begin{equation} \label{eq:smartsched}
-L_{\text{regret}} = \sum_{\substack{\theta_i^\star < \theta_j^\star}} R_{i,j} \cdot \max(0, \text{sign}(f_\omega(x_i) - f_\omega(x_j))).
-\end{equation}
-\end{problem} Directly optimizing $L_{\text{regret}}$ is challenging due to non-differentiability and the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}.
-We therefore derive a differentiable surrogate loss that targets the critical
-pairwise precedence decisions of SPT and weights each decision by its SCT
+We therefore seek to minimize the \emph{decision regret}, 
+defined as the total cost of all misordered pairs:
+$$L_{\text{regret}} = \sum_{\substack{\theta_i^\star < \theta_j^\star}} R_{i,j} \cdot \max(0, \text{sign}(f_\omega(x_i) - f_\omega(x_j))).$$ Optimizing $L_{\text{regret}}$ is challenging due to non-differentiability and the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}.
+We derive a differentiable surrogate loss that targets the
+pairwise precedence decisions of SPT and weights the decisions by their SCT
 impact.
 
 \noindent\textbf{Step 3: Derive a Smooth Surrogate from SPT.}
