@@ -556,7 +556,8 @@ An offset is added to the final task durations to guarantee that all values rema
 \paragraph{Benchmark methods.}
 
 For both Problem configurations, we compare our method with a \emph{predict-and-optimize} solution via MSE and other two \emph{Smart Predict, then Optimize} baselines.
-\emph{SPO+}~\cite{elmachtoub2022smart} is a specific SPO implementation that uses a convex surrogate loss to train the model to minimize decision regret. In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes incorrect pairwise orderings based on their differences, without relying on the specifics of the scheduling problem.
+\emph{SPO+}~\cite{elmachtoub2022smart} is a convex and differentiable implementation of SPO that enables gradient-based learning by minimizing decision regret.
+In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes incorrect pairwise orderings based on their differences, without relying on the specifics of the scheduling problem.
 %\footnote{For each job pair $(i,j)$ where $i$ precedes $j$, we define the surrogate loss as $\sigma(\Delta_{ij})$, where $\Delta_{ij} = f_\omega(x_i) - f_\omega(x_j)$; this applies to both Problem~1 and Problem~2.} to put in appendix
 
 \paragraph{Experimental Procedure.}
@@ -582,15 +583,20 @@ Models are evaluated on the full test set by comparing the SCT and Makespan of j
 
 \subsection{Results}
 
-Tabke~\ref{tab:linear_dataset_1machine_results} 
+Starting from Problem~1, SASS outperforms the baselines across all noise levels $\eta$ on \emph{linear} datasets, as shown in Table~\ref{tab:linear_dataset_results}.
+Figure~\ref{fig:nonLinear_dataset_1_machine_problem} shows the results on \emph{nonlinear} datasets, where SASS remains competitive with the other baselines, which tend to be more stable and exhibit lower standard deviation across runs. MSE achieves better performance at noise levels $0$ and $6$ (Figure~\ref{fig:nonLinear_dataset_1_machine_problem}), especially at noise $0$, which represents a more typical prediction scenario, but shows high variability over multiple runs. The closest competitor for Problem~1 is LTR, since the optimal solution corresponds to an exact ranking of the jobs by duration.
 
-Table~\ref{tab:times_training} reports the training times for different nonlinear dataset sizes with noise level $5$. As observed, the fastest method is MSE, but it grows roughly with the dataset size since it compares all elements. In contrast, LTR and SASS (ours) scale more smoothly thanks to pairwise approximation (Section~\ref{sec:experimental_procedure}).
-Regarding SPO+, we observe that its training time is independent of the dataset size but depends on the specific problem instance and, consequently, on the gradient of the problem. Additionally, SPO+ requires hyperparameter optimization, taking roughly 40 minutes per dataset and noise level, to achieve comparable performance, and it typically needs $5000$ iterations instead of the $1000$ used by the other methods.
+SPO+, on the other hand, struggles in both the presence and absence of noise across all dataset types, as reported in Figure~\ref{fig:nonLinear_dataset_1_machine_problem}. The weak performance of SPO+ in Problem~1 stems from the definition of the problem itself. SPO+ works best when the optimization objective changes smoothly with respect to the predicted order. In contrast, for the SCT problem, even a small error in the predicted ordering can lead to large deviations in the objective, which makes SPO+ less effective.
+
+Finally, Table~\ref{tab:times_training} reports the training times over Problem~1 for different nonlinear dataset sizes with noise level $5$. As observed, the fastest method is MSE, but it grows roughly with the dataset size since it compares all elements. In contrast, LTR and SASS (ours) scale more smoothly thanks to pairwise approximation (Section~\ref{sec:experimental_procedure}).
+Regarding SPO+, we observe that its training time is independent of the dataset size but depends on the specific problem instance and its gradient. Additionally, SPO+ requires hyperparameter optimization, taking roughly 40 minutes per dataset and noise level, to achieve comparable performance, and it often needs $5000$ iterations instead of the $1000$ used by the other methods.
+
+Concern Problem~2, SASS outperforms the other method in precense of a relevant noise level on \emph{linear} datasets as shown in Table~\ref{tab:linear_dataset_results}. 
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.5\textwidth]{new_plot/nonLinear_problem1.png}
-\caption{Comparison of SPO+, LTR, and SASS (ours) on \emph{Nonlinear} datasets of size $10000$. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
+\caption{Comparison of MSE, SPO+, LTR, and SASS (ours) on \emph{Nonlinear} datasets of size $10000$ on Problem~1. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
 \label{fig:nonLinear_dataset_1_machine_problem}
 \end{figure}
 
@@ -606,18 +612,18 @@ Regarding SPO+, we observe that its training time is independent of the dataset 
 \multirow{4}{*}{\rotatebox{90}{\textbf{Problem 1}}} 
 & MSE Loss     & 0.576 & 0.363 & 0.359 & 0.701 & 0.706 & 1.132 \\
 & LTR          & 0.225 & 0.284 & 0.356 & 0.494 & 0.647 & 0.976 \\
-& SASS (ours)  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
+& SASS  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
 & SPO+         & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
 \midrule
 \multirow{4}{*}{\rotatebox{90}{\textbf{Problem 2}}} 
 & MSE & \textbf{0.006} & 0.069 & 0.158 & 0.229 & 0.270 & 0.277 \\
 & LTR & 0.009 & 0.045 & \textbf{0.116} & 0.178 & 0.255 & 0.225 \\
 & SASS  & 0.007 & \textbf{0.042} & 0.132 & \textbf{0.128} & \textbf{0.133} & \textbf{0.158} \\
-& SPO+         &       &       &       &       &       &       \\
+& SPO+  & 0.012    &       &       &       &       &       \\
 \bottomrule
 \end{tabular}}
 \caption{SCT and Makespan \% error respect to optimal schedule, across different noise level $\eta$ over linear dataset with size $10000$ for Problem~1 and Problem~2.}
-\label{tab:linear_dataset_1machine_results}
+\label{tab:linear_dataset_results}
 \end{table}
 
 
@@ -636,10 +642,17 @@ SASS (ours) & 28.64s & 33.26s & 41.57s & 52.59s \\
 SPO+        & 26.15s & 59.82s & 23.746s & 24.246s \\
 \bottomrule
 \end{tabular}}
-\caption{Training times across different nonlinear dataset sizes with noise $10$, computed over $10$ runs.}
+\caption{Training times across different \emph{nonlinear} dataset sizes with noise $10$, computed over $10$ runs.}
 \label{tab:times_training}
 \end{table}
 
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\textwidth]{new_plot/nonLinearProblem2.png}
+\caption{Comparison of MSE, SPO+, LTR, and SASS (ours) on \emph{Nonlinear} datasets of size $10000$ on Problem~2. Makespan error (logarithmic scale) relative to the optimal schedule is shown.}
+\label{fig:nonLinear_dataset_1_machine_problem}
+\end{figure}
 
 
 
