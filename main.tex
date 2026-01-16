@@ -264,7 +264,7 @@ its SCT impact.
 
 \noindent\textbf{Step 1: Identify Unknown Parameters.}
 In this problem, the unknown parameter for each task $i$ is its processing time
-$y_i>0$. In the notation of Section~\ref{sec:framework}, we write
+$y_i>0$. We write
 $\theta_i^\star := y_i$ and $\theta^\star := (\theta_1^\star,\dots,\theta_n^\star)$.
 We observe features $x_i\in\mathbb{R}^p$ and learn a predictor
 $\hat{\theta}_i = f_\omega(x_i)$ from a dataset
@@ -358,8 +358,7 @@ learning.
 
 \noindent\textbf{Step 1: Identify Unknown Parameters.}
 In the $F2\|C_{\max}$ setting, the unknown parameters for each job $i$ are its
-two processing times on machines $1$ and $2$. In the notation of
-Section~\ref{sec:framework}, let
+two processing times on machines $1$ and $2$, and let
 $\theta_i^\star := (p_{i1},p_{i2})$ and
 $\theta^\star := (\theta_1^\star,\dots,\theta_n^\star)$.
 
@@ -384,10 +383,9 @@ Following Section~\ref{sec:framework}, we make the critical decision set explici
 \(
 \mathcal{K}=\mathcal{K}_{\mathrm{group}}\cup\mathcal{K}_{\mathrm{order}},
 \)
-where $\mathcal{K}_{\mathrm{group}}=\{d=i: i\in[n]\}$ encodes group membership decisions and $\mathcal{K}_{\mathrm{order}}=\{d=(i,j): i<j,\ i,j \in G_1 \text{ or } i,j \in G_2\}$ encodes within-group precedence comparisons.
+where $$\mathcal{K}_{\mathrm{group}}=\{d=i: i\in[n]\},$$ represents group membership decisions and, $$\mathcal{K}_{\mathrm{order}}=\{d=(i,j): i<j,\ i,j \in G_1 \text{ or } i,j \in G_2\},$$ encodes within-group precedence comparisons.
 
-When processing times are unknown and must be predicted from features $x_i$, we
-follow the Section~\ref{sec:framework} view and predict \emph{decision-relevant
+When processing times are unknown and must be predicted from features $x_i$, we predict \emph{decision-relevant
 scores} that parameterize the critical decisions of $\mathcal{A}_{\mathrm{J}}$.
 Concretely, each job $i$ is mapped to two scalar scores
 \[
@@ -402,9 +400,7 @@ The predicted sequence then follows the structure of Johnson’s rule:
     \item Assign each job to $\hat{G}_1$ if $\hat{d}_i < 0$ and to $\hat{G}_2$ otherwise.
     \item Sort $\hat{G}_1$ by increasing $\hat{s}_i$.
     \item Sort $\hat{G}_2$ by decreasing $\hat{s}_i$.
-\end{enumerate}
-
-This parameterization separates the discrete grouping decision from the within-group ranking
+\end{enumerate} This parameterization separates the discrete grouping decision from the within-group ranking
 decision, reflecting the decomposition inherent in Johnson’s optimal policy.
 At inference time, we apply the same deterministic structure,
 $\hat{\pi}=\mathcal{A}_{\mathrm{J}}(\hat{\theta})$, using $\hat{\theta}_i=(\hat{d}_i,\hat{s}_i)$.
