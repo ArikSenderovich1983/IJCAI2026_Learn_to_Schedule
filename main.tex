@@ -290,9 +290,7 @@ As a reference baseline, we consider predict-then-optimize~\cite{Mandi2020}, whe
 \end{equation}
 The resulting model predicts durations $\hat{y}_i=f_{\omega^\star_{\mathrm{MSE}}}(x_i)$,
 and the optimization phase schedules tasks by sorting predicted durations (SPT).
-This corresponds to computing $\hat{\theta}_i=f_{\omega^\star_{\mathrm{MSE}}}(x_i)$ and then scheduling via $\hat{\pi}=\mathcal{A}_{\mathrm{SPT}}(\hat{\theta})$.
-
-However, minimizing MSE ignores the structure of the scheduling objective.
+This corresponds to computing $\hat{\theta}_i=f_{\omega^\star_{\mathrm{MSE}}}(x_i)$ and then scheduling via $\hat{\pi}=\mathcal{A}_{\mathrm{SPT}}(\hat{\theta})$. However, minimizing MSE ignores the structure of the scheduling objective.
 For SCT, the cost of a prediction error depends entirely on whether it alters the task sequence.
 Consider a sequencing where the task in position $k$ has duration $y_k$. The total SCT is $\sum_{k=1}^n (n+1-k) \, y_k$.
 Swapping two tasks at positions $i < j$ alters the objective by:
@@ -542,20 +540,18 @@ In the absence of established benchmarks, these two datasets support systematic 
         This specific structure introduces smooth nonlinearities, feature interactions, and periodic components.
     \end{itemize}
 
-    \item \textbf{Problem 2 (Flow Shop) Generation.} We generate durations for two machines, $m_1$ and $m_2$:
-    \begin{itemize}
-        \item \emph{Linear model:} Generated similarly to Problem 1. \todo[inline]{to fix as for NonLinear}
-        \item \emph{Nonlinear model:} To ensure a balanced probability of assigning jobs to groups $G_1$ and $G_2$ (see Section~\ref{sec:flowshop}), we use the function $g(\mathbf{x})$ defined above:
+    \item \textbf{Problem 2 (Flow Shop) Generation.} 
+    We generate durations for two machines, $m_1$ and $m_2$, by incorporating the functions defined for Problem~1 and adding other elements to ensure a balanced probability of assigning jobs to groups $G_1$ and $G_2$ (see Section~\ref{sec:flowshop}). 
+    For the \emph{linear model}, we randomly add a $\delta$ sampled from a normal distribution in $[0,1]$ to one machine and subtract it from the other. 
+    For the \emph{nonlinear model}, we modify the outputs of the function $g(\mathbf{x})$ by adding or subtracting small linear combinations of the input features to each machine:
         \[
         \begin{aligned}
         m_1(\mathbf{x}) &= g(\mathbf{x}) + 0.3\, x_1 - 0.2\, x_3, \\
         m_2(\mathbf{x}) &= g(\mathbf{x}) - 0.25\, x_2 + 0.4\, x_4 .
         \end{aligned}
         \]
-    \end{itemize}
 \end{itemize} The functions were chosen to ensure that the learning task remains nontrivial, requiring the model to capture both local and global feature dependencies, while still being interpretable and reproducible.
-
-To ensure strictly positive durations, constants of $100$ and $500$ were added to the final task durations for the Problem~1 and Problem~2 datasets, respectively. Finally, gaussian noise with standard deviation $\eta$ was added to simulate uncertainty.
+An offset is added to the final task durations to guarantee that all values remain strictly positive. Finally, gaussian noise with standard deviation $\eta$ was added to simulate uncertainty.
 
 \paragraph{Benchmark methods.}
 
@@ -586,6 +582,44 @@ Models are evaluated on the full test set by comparing the SCT and Makespan of j
 
 \subsection{Results}
 
+Tabke~\ref{tab:linear_dataset_1machine_results} 
+
+Table~\ref{tab:times_training} reports the training times for different nonlinear dataset sizes with noise level $5$. As observed, the fastest method is MSE, but it grows roughly with the dataset size since it compares all elements. In contrast, LTR and SASS (ours) scale more smoothly thanks to pairwise approximation (Section~\ref{sec:experimental_procedure}).
+Regarding SPO+, we observe that its training time is independent of the dataset size but depends on the specific problem instance and, consequently, on the gradient of the problem. Additionally, SPO+ requires hyperparameter optimization, taking roughly 40 minutes per dataset and noise level, to achieve comparable performance, and it typically needs $5000$ iterations instead of the $1000$ used by the other methods.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\textwidth]{new_plot/nonLinear_problem1.png}
+\caption{Comparison of SPO+, LTR, and SASS (ours) on \emph{Nonlinear} datasets of size $10000$. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
+\label{fig:nonLinear_dataset_1_machine_problem}
+\end{figure}
+
+
+\begin{table}[t]
+\centering
+\resizebox{0.45\textwidth}{!}{
+\begin{tabular}{c c c c c c c c}
+\toprule
+ & \textbf{Method} & \multicolumn{6}{c}{\textbf{Noise Level}} \\
+ &  & 0 & 2 & 4 & 6 & 8 & 10 \\
+\midrule
+\multirow{4}{*}{\rotatebox{90}{\textbf{Problem 1}}} 
+& MSE Loss     & 0.576 & 0.363 & 0.359 & 0.701 & 0.706 & 1.132 \\
+& LTR          & 0.225 & 0.284 & 0.356 & 0.494 & 0.647 & 0.976 \\
+& SASS (ours)  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
+& SPO+         & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
+\midrule
+\multirow{4}{*}{\rotatebox{90}{\textbf{Problem 2}}} 
+& MSE & \textbf{0.006} & 0.069 & 0.158 & 0.229 & 0.270 & 0.277 \\
+& LTR & 0.009 & 0.045 & \textbf{0.116} & 0.178 & 0.255 & 0.225 \\
+& SASS  & 0.007 & \textbf{0.042} & 0.132 & \textbf{0.128} & \textbf{0.133} & \textbf{0.158} \\
+& SPO+         &       &       &       &       &       &       \\
+\bottomrule
+\end{tabular}}
+\caption{SCT and Makespan \% error respect to optimal schedule, across different noise level $\eta$ over linear dataset with size $10000$ for Problem~1 and Problem~2.}
+\label{tab:linear_dataset_1machine_results}
+\end{table}
+
 
 
 \begin{table}[t]
@@ -605,35 +639,6 @@ SPO+        & 26.15s & 59.82s & 23.746s & 24.246s \\
 \caption{Training times across different nonlinear dataset sizes with noise $10$, computed over $10$ runs.}
 \label{tab:times_training}
 \end{table}
-
-Table~\ref{tab:times_training} reports the training times for different nonlinear dataset sizes with noise level $5$. As observed, the fastest method is MSE, but it grows roughly with the dataset size since it compares all elements. In contrast, LTR and SASS (ours) scale more smoothly thanks to pairwise approximation (Section~\ref{sec:experimental_procedure}).
-Regarding SPO+, we observe that its training time is independent of the dataset size but depends on the specific problem instance and, consequently, on the gradient of the problem. Additionally, SPO+ requires hyperparameter optimization, taking roughly 40 minutes per dataset and noise level, to achieve comparable performance, and it typically needs $5000$ iterations instead of the $1000$ used by the other methods.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.5\textwidth]{new_plot/nonLinear_problem1.png}
-\caption{Comparison of SPO+, LTR, and SASS (ours) on \emph{Nonlinear} datasets of size $10000$. SCT error (logarithmic scale) relative to the optimal schedule is shown.}
-\label{fig:nonLinear_dataset_1_machine_problem}
-\end{figure}
-
-\begin{table}[t]
-\centering
-\resizebox{0.45\textwidth}{!}{
-\begin{tabular}{lcccccc}
-\toprule
-\textbf{Loss} & \multicolumn{6}{c}{\textbf{Noise Level}} \\
-              & 0 & 2 & 4 & 6 & 8 & 10 \\
-\midrule
-MSE Loss     & 0.576 & 0.363 & 0.359 & 0.701 & 0.706 & 1.132 \\
-LTR          & 0.225 & 0.284 & 0.356 & 0.494 & 0.647 & 0.976 \\
-SASS (ours)  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
-SPO+         & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
-\bottomrule
-\end{tabular}}
-\caption{SCT error across different noise level $\eta$ over linear dataset with size $10000$.}
-\label{tab:loss_means}
-\end{table}
-
 
 
 
@@ -708,8 +713,9 @@ Our work lies within three literature strands: smart predict-and-optimize, domai
 \noindent\textbf{Smart predict-and-optimize.}
 Standard predict-then-optimize approaches (e.g.,~\cite{shahabikargar2014predicting}) typically minimize prediction error (MSE), ignoring downstream decision impact.
 The SPO framework~\cite{elmachtoub2022smart} addresses this by minimizing decision regret directly, but its non-convexity necessitates surrogates like SPO+.
-While extensions exist---SPO Trees~\cite{elmachtoub2020decisiontrees} for interpretability, relaxation-based methods for knapsack~\cite{Mandi2020}, or RL-based constrained optimization~\cite{Silvestri2024}---they often assume deterministic parameters or struggle with nonlinear scheduling dynamics.
-In contrast, our framework directly exploits the critical-decision structure of polynomial-time rules, enabling stable, differentiable learning for complex scheduling objectives.
+While extensions exist such as SPO Trees for interpretability~\cite{elmachtoub2020decisiontrees}, relaxation-based methods for knapsack~\cite{Mandi2020}, or RL-based constrained optimization~\cite{Silvestri2024}, these
+methods often assume deterministic parameters or struggle with nonlinear scheduling dynamics.
+In contrast, our framework directly exploits the critical-decision structure of polynomial-time rules, enabling stable learning.
 
 \noindent\textbf{Semi- and domain-specific SPO.}
 Semi-SPO~\cite{Yang2023Semi,Yan2020Semi} and domain-specific methods for transport~\cite{tian2023}, manufacturing~\cite{Wang2024Refinery}, and energy~\cite{Alrasheedi2024Microgrid} employ specialized losses to improve performance.
@@ -719,7 +725,7 @@ By contrast, our surrogate is provably consistent: it converges exactly to the t
 \noindent\textbf{Learn to Rank.}
 Learn-to-rank (LTR) methods like RankNet~\cite{burges2005learning}, ListWise~\cite{cao2007learning}, and BPR~\cite{rendle2009bpr} also utilize sigmoid-based penalties.
 However, standard LTR losses optimize generic ranking metrics (e.g., AUC, NDCG) rather than the actual scheduling objective.
-Our approach adapts the LTR mechanism but weights each decision by its precise contribution to the objective (SCT or makespan), ensuring the model minimizes the relevant operational cost.
+Our approach adapts the LTR mechanism, but weights each decision by its precise contribution to the objective (SCT or makespan), ensuring the model minimizes the relevant operational cost.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -731,11 +737,9 @@ Future work will extend this decision-aware paradigm to complex multi-stage sche
 
 \bibliographystyle{named}
 \bibliography{mybibfile}
-
-\newpage
-\newpage
+\clearpage
 \appendix
-
+\newpage
 \section{Technical Appendix}
 \label{sec:appendix}
 
@@ -811,6 +815,20 @@ In Problem 2, it approximates the makespan regret via the aggregated Johnson swa
 \label{fig:nonLinear_dataset_1_machine_problem}
 \end{figure}
 
+\begin{table}[t]
+\centering
+\caption{Hyperparameter tuning for the SPO+ method.}
+\label{tab:spo_hyperparams}
+\begin{tabular}{ll}
+\toprule
+Parameter & Range / Value \\
+\midrule
+Learning rate & $10^{-5}$ -- $5 \times 10^{-2}$ (log scale) \\
+Batch size & \{5, 10, 20, 30, 50\} \\
+Patience & 200 -- 4000 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 
 
