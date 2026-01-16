@@ -282,8 +282,7 @@ Following Section~\ref{sec:framework}, the critical decision set for SPT is the 
 \)
 where each $d$ encodes whether job $i$ should precede job $j$.
 
-\paragraph{Predict-then-optimize baseline (MSE).}
-As a baseline, we consider predict-then-optimize~\cite{Mandi2020}, where $f_\omega$ is trained by minimizing empirical mean squared error (MSE):
+As a reference baseline, we consider predict-then-optimize~\cite{Mandi2020}, where $f_\omega$ is trained by minimizing empirical mean squared error (MSE):
 \begin{equation}
 \omega^\star_{\mathrm{MSE}}
 =
@@ -364,10 +363,9 @@ Section~\ref{sec:framework}, let
 $\theta_i^\star := (p_{i1},p_{i2})$ and
 $\theta^\star := (\theta_1^\star,\dots,\theta_n^\star)$.
 
-\noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart.} In the $F2\|C_{\max}$ setting, each job $i$ has two true processing times 
-$(p_{i1}, p_{i2})$, one for each machine.
-Johnson’s rule partitions all jobs into
-two sets:
+\noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart and Critical Decisions.}
+In the $F2\|C_{\max}$ setting, each job $i$ has two true processing times $(p_{i1}, p_{i2})$.
+Johnson’s rule partitions all jobs into two sets
 \[
 G_1 = \{ i : p_{i1} < p_{i2} \}, 
 \qquad
@@ -375,14 +373,18 @@ G_2 = \{ i : p_{i1} \ge p_{i2} \},
 \]
 orders $G_1$ in ascending $p_{i1}$, orders $G_2$ in descending $p_{i2}$, and 
 concatenates the two sequences.
-Consequently, the optimal sequence is determined
-by (i) the correct group assignment of each job and (ii) the correct ordering 
-within each group.
+Consequently, the optimal sequence is determined by (i) the group assignment of each job and (ii) the within-group ordering.
 Equivalently, for known processing times $\theta$, the deterministic optimum is
 \(
 \pi(\theta)=\mathcal{A}_{\mathrm{J}}(\theta)
 \),
 where $\mathcal{A}_{\mathrm{J}}$ is Johnson's rule.
+
+Following Section~\ref{sec:framework}, we make the critical decision set explicit:
+\(
+\mathcal{K}=\mathcal{K}_{\mathrm{group}}\cup\mathcal{K}_{\mathrm{order}},
+\)
+where $\mathcal{K}_{\mathrm{group}}=\{d=i: i\in[n]\}$ encodes group membership decisions and $\mathcal{K}_{\mathrm{order}}=\{d=(i,j): i<j,\ i,j \in G_1 \text{ or } i,j \in G_2\}$ encodes within-group precedence comparisons.
 
 When processing times are unknown and must be predicted from features $x_i$, we
 follow the Section~\ref{sec:framework} view and predict \emph{decision-relevant
@@ -413,8 +415,7 @@ $\hat{\pi}=\mathcal{A}_{\mathrm{J}}(\hat{\theta})$, using $\hat{\theta}_i=(\hat{
 Both components rely on sigmoidal approximations of indicator functions, as in
 Section~\ref{sec:framework}. 
 
-Let $\mathcal{K}=\mathcal{K}_{\mathrm{group}}\cup\mathcal{K}_{\mathrm{order}}$
-with group decisions $d=i$ and ordering decisions $d=(i,j)$.
+We use the critical decision set $\mathcal{K}=\mathcal{K}_{\mathrm{group}}\cup\mathcal{K}_{\mathrm{order}}$ defined in Step~2, with group decisions $d=i$ and ordering decisions $d=(i,j)$.
 For $d=i$, set $s_d=\hat{d}_i$, $m_d=\hat{d}_i d_i$ with $d_i=p_{i1}-p_{i2}$, and
 $\phi_d=|d_i|$.
 For $d=(i,j)$, set $\phi_d=\Delta_{i,j}$ and use sortable scores:
