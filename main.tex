@@ -255,14 +255,14 @@ improve patient sequencing.
 
 \section{Problem 1: Single-Machine Scheduling}
 \label{sec:problem1}
-We now instantiate the four-step framework of Section~\ref{sec:framework} for the
+We now instantiate the four-step SASS recipe for the
 single-machine sum of completion times (SCT) objective, where the processing times are unknown.
 The deterministic counterpart is solved by the shortest-processing-time (SPT)
 rule; we derive a smooth, decision-level surrogate that targets the pairwise
 precedence decisions induced by SPT and weights each potential misordering by
 its SCT impact.
 
-\noindent\textbf{Step 1: Identify Unknown Parameters.}
+\noindent\textbf{Step 1.}
 In this problem, the unknown parameter for each task $i$ is its processing time
 $y_i>0$. We write
 $\theta_i^\star := y_i$ and $\theta^\star := (\theta_1^\star,\dots,\theta_n^\star)$.
@@ -270,13 +270,13 @@ We observe features $x_i\in\mathbb{R}^p$ and learn a predictor
 $\hat{\theta}_i = f_\omega(x_i)$ from a dataset
 $\mathcal{D} = \{(x_j, \theta_j^\star)\}_{j=1}^N$ (equivalently, $\hat{y}_i=\hat{\theta}_i$).
 
-\noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart and Critical Decisions.}
+\noindent\textbf{Step 2.}
 For single-machine SCT minimization with all tasks available at time $0$, the deterministic optimum under known processing times is shortest-processing-time first (SPT)~\cite{pinedo2022scheduling}:
 \(
 \pi(\theta)=\mathcal{A}_{\mathrm{SPT}}(\theta)
 \),
 where $\mathcal{A}_{\mathrm{SPT}}$ sorts tasks by increasing $\theta_i$.
-Following Section~\ref{sec:framework}, the critical decision set for SPT is the collection of pairwise precedence comparisons,
+The critical decision set for SPT is the collection of pairwise precedence comparisons,
 \(
 \mathcal{K} := \{d=(i,j): i<j\},
 \)
@@ -290,9 +290,7 @@ As a reference baseline, we consider predict-then-optimize~\cite{Mandi2020}, whe
 \end{equation}
 The resulting model predicts durations $\hat{y}_i=f_{\omega^\star_{\mathrm{MSE}}}(x_i)$,
 and the optimization phase schedules tasks by sorting predicted durations (SPT).
-In Section~\ref{sec:framework} notation, this corresponds to computing
-$\hat{\theta}_i=f_{\omega^\star_{\mathrm{MSE}}}(x_i)$ and then
-$\hat{\pi}=\mathcal{A}_{\mathrm{SPT}}(\hat{\theta})$.
+This corresponds to computing $\hat{\theta}_i=f_{\omega^\star_{\mathrm{MSE}}}(x_i)$ and then scheduling via $\hat{\pi}=\mathcal{A}_{\mathrm{SPT}}(\hat{\theta})$.
 
 However, minimizing MSE ignores the structure of the scheduling objective.
 For SCT, the cost of a prediction error depends entirely on whether it alters the task sequence.
@@ -310,7 +308,7 @@ We derive a differentiable surrogate loss that targets the
 pairwise precedence decisions of SPT and weights the decisions by their SCT
 impact.
 
-\noindent\textbf{Step 3: Derive a Smooth Surrogate from SPT.}
+\noindent\textbf{Step 3.}
 For a pair $(i,j)$, define the decision score
 \(
 s_{i,j}(\omega;x)= \hat{\theta}_i-\hat{\theta}_j = f_\omega(x_i)-f_\omega(x_j)
@@ -324,8 +322,7 @@ In the framework notation, take $s_d=s_{i,j}$ for $d=(i,j)\in\mathcal{K}$ and or
 m_d(\omega;x,\theta^\star)=-s_{i,j}(\omega;x)
 \)
 for $\theta_i^\star<\theta_j^\star$, so $m_d>0$ iff the order is correct.
-With $\phi_d(\theta^\star)=R_{i,j}$, Eq.~\eqref{eq:general-surrogate} gives the term
-$R_{i,j}\sigma(s_{i,j}/\lambda)$.
+With weight $\phi_d(\theta^\star)=R_{i,j}$, the corresponding surrogate term is $R_{i,j}\sigma(s_{i,j}/\lambda)$.
 The empirical sigmoid loss is thus defined as:
 \begin{equation}
 L_{\text{sigmoid}}
@@ -337,7 +334,7 @@ L_{\text{sigmoid}}
 A larger \(\lambda\) smooths the decision boundary, while a smaller \(\lambda\) sharpens sensitivity to misorderings.
 We train by minimizing $L_{\text{sigmoid}}$, i.e., $\omega^\star = \arg\min_{\omega} L_{\text{sigmoid}}(\omega)$. Correctly ordered pairs contribute near $0$, while misordered pairs are penalized proportionally to their SCT impact $R_{i,j}$.
 
-\noindent\textbf{Step 4: Train and Infer with SPT.} At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
+\noindent\textbf{Step 4.} At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
 compute $\hat{\theta}_i=f_{\omega^\star}(x_i)$ and return
 $\hat{\pi}=\mathcal{A}_{\mathrm{SPT}}(\hat{\theta})$, i.e., the SPT schedule
 obtained by sorting tasks by $\hat{\theta}_i$ in ascending order.
@@ -345,7 +342,7 @@ obtained by sorting tasks by $\hat{\theta}_i$ in ascending order.
 \section{Problem 2: Flow Shop Scheduling}
 \label{sec:flowshop}
 
-The surrogate framework developed in Section~\ref{sec:framework} naturally extends
+The SASS recipe naturally extends
 to other scheduling problems whose optimal deterministic policies admit rule-based
 structural characterizations.
 In this section, we demonstrate this by considering
@@ -356,13 +353,13 @@ We show how to construct a smooth surrogate loss that mimics the structure of
 the optimal rule while remaining differentiable and suitable for gradient-based
 learning.
 
-\noindent\textbf{Step 1: Identify Unknown Parameters.}
+\noindent\textbf{Step 1.}
 In the $F2\|C_{\max}$ setting, the unknown parameters for each job $i$ are its
 two processing times on machines $1$ and $2$, and let
 $\theta_i^\star := (p_{i1},p_{i2})$ and
 $\theta^\star := (\theta_1^\star,\dots,\theta_n^\star)$.
 
-\noindent\textbf{Step 2: Deterministic Polynomial-Time Counterpart and Critical Decisions.}
+\noindent\textbf{Step 2.}
 In the $F2\|C_{\max}$ setting, each job $i$ has two true processing times $(p_{i1}, p_{i2})$.
 Johnson’s rule partitions all jobs into two sets
 \[
@@ -379,11 +376,11 @@ Equivalently, for known processing times $\theta$, the deterministic optimum is
 \),
 where $\mathcal{A}_{\mathrm{J}}$ is Johnson's rule.
 
-Following Section~\ref{sec:framework}, we make the critical decision set explicit:
+We make the critical decision set explicit:
 \(
 \mathcal{K}=\mathcal{K}_{\mathrm{group}}\cup\mathcal{K}_{\mathrm{order}},
 \)
-where $$\mathcal{K}_{\mathrm{group}}=\{d=i: i\in[n]\},$$ represents group membership decisions and, $$\mathcal{K}_{\mathrm{order}}=\{d=(i,j): i<j,\ i,j \in G_1 \text{ or } i,j \in G_2\},$$ encodes within-group precedence comparisons.
+where $\mathcal{K}_{\mathrm{group}}=\{d=i: i\in[n]\}$ represents group membership decisions and $\mathcal{K}_{\mathrm{order}}=\{d=(i,j): i<j,\ i,j \in G_1 \text{ or } i,j \in G_2\}$ encodes within-group precedence comparisons.
 
 When processing times are unknown and must be predicted from features $x_i$, we predict \emph{decision-relevant
 scores} that parameterize the critical decisions of $\mathcal{A}_{\mathrm{J}}$.
@@ -405,11 +402,11 @@ decision, reflecting the decomposition inherent in Johnson’s optimal policy.
 At inference time, we apply the same deterministic structure,
 $\hat{\pi}=\mathcal{A}_{\mathrm{J}}(\hat{\theta})$, using $\hat{\theta}_i=(\hat{d}_i,\hat{s}_i)$.
 
-\noindent\textbf{Step 3: Derive a Smooth Surrogate from Johnson's Rule.} To train the model, we define a smooth surrogate loss consisting of two components:
+\noindent\textbf{Step 3.} To train the model, we define a smooth surrogate loss consisting of two components:
 (1) a penalty for incorrect \emph{group assignment}, and
 (2) a penalty for incorrect \emph{within-group ordering}.
 Both components rely on sigmoidal approximations of indicator functions, as in
-Section~\ref{sec:framework}. 
+our general construction. 
 
 We use the critical decision set $\mathcal{K}=\mathcal{K}_{\mathrm{group}}\cup\mathcal{K}_{\mathrm{order}}$ defined in Step~2, with group decisions $d=i$ and ordering decisions $d=(i,j)$.
 For $d=i$, set $s_d=\hat{d}_i$, $m_d=\hat{d}_i d_i$ with $d_i=p_{i1}-p_{i2}$, and
@@ -507,7 +504,7 @@ and within-group ordering, so that $L_{\mathrm{Johnson}}$ converges to a
 piecewise-constant approximation of the true makespan regret induced by
 Johnson's rule.
 
-\noindent\textbf{Step 4: Train and Infer with Johnson's Rule.}
+\noindent\textbf{Step 4.}
 We train $f_\omega$ by minimizing the surrogate $L_{\mathrm{Johnson}}$.
 At inference time, given a new instance with features $\{x_i\}_{i=1}^n$, we
 compute $(\hat{d}_i,\hat{s}_i)=f_{\omega^\star}(x_i)$ and construct the schedule
