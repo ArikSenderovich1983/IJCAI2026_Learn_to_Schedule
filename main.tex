@@ -302,7 +302,9 @@ R_{i,j} &= \big[(n{+}1{-}i)\, y_j + (n{+}1{-}j)\, y_i\big] -\\
 \end{align}
 We therefore seek to minimize the \emph{decision regret}, 
 defined as the total cost of all misordered pairs:
-$$L_{\text{regret}} = \sum_{\substack{\theta_i^\star < \theta_j^\star}} R_{i,j} \cdot \max(0, \text{sign}(f_\omega(x_i) - f_\omega(x_j))).$$ Optimizing $L_{\text{regret}}$ is challenging due to non-differentiability and the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}.
+\begin{equation}
+    L_{\text{regret}} = \sum_{\substack{\theta_i^\star < \theta_j^\star}} R_{i,j} \cdot \max(0, \text{sign}(f_\omega(x_i) - f_\omega(x_j))).
+\end{equation} Optimizing $L_{\text{regret}}$ is challenging due to non-differentiability and the combinatorial nature of ordering tasks~\cite{elmachtoub2022smart}.
 We derive a differentiable surrogate loss that targets the
 pairwise precedence decisions of SPT and weights the decisions by their SCT
 impact.
@@ -533,7 +535,7 @@ In the absence of established benchmarks, these two datasets support systematic 
 \paragraph{Problem 1 (SCT) Generation.} We generate job durations using linear and nonlinear functions. The \emph{linear} model is \(f(x) = \mathbf{xw}\), where \(\mathbf{w}\) is a randomly generated weight vector and \(\mathbf{x}\) consists of features uniformly sampled from \([0,1]\). The \emph{nonlinear} model is \(g(x) = 3x_1^2 + 4.0\sin(2\pi x_2) + 3x_3x_4 + 2x_5^3\), with \(x_1, \dots, x_5\) uniformly sampled. This structure introduces smooth nonlinearities, feature interactions, and periodic components.
 
 
-\paragraph{Problem 2 (Flow Shop) Generation.} We generate durations for two machines, \(m_1\) and \(m_2\), by incorporating the functions from Problem~1 and adding elements to ensure a balanced probability of assigning jobs to groups \(G_1\) and \(G_2\) (see Section~\ref{sec:flowshop}). In the \emph{linear model}, we introduce \(\delta\) as a random variable sampled from a normal distribution in \([0,1]\) and set the duration for either machine as \(m_i(\mathbf{x}) = \mathbf{xw} + \delta\) for \(i=1,2\).
+\paragraph{Problem 2 (Flow Shop) Generation.} We generate durations for two machines, \(m_1\) and \(m_2\), by incorporating the functions from Problem~1 and adding elements to ensure a balanced probability of assigning jobs to groups \(G_1\) and \(G_2\) (see Section~\ref{sec:flowshop}). In the \emph{linear model}, we introduce \(\delta\) as a random variable sampled from a standard normal distribution, and set the duration for either machine as \(m_i(\mathbf{x}) = \mathbf{xw} + \delta\) for \(i=1,2\).
 In the \emph{nonlinear model}, we modify \(g(\mathbf{x})\) by adding or subtracting small linear combinations of input features: \(m_1(\mathbf{x}) = g(\mathbf{x}) + 0.3 x_1 - 0.2 x_3\) and \(m_2(\mathbf{x}) = g(\mathbf{x}) - 0.25 x_2 + 0.4 x_4\). These functions ensure the learning task is nontrivial, requiring the model to capture both local and global feature dependencies while remaining interpretable and reproducible. 
 
 For both problems, an offset is added to guarantee strictly positive durations, and to each of the functions, we add Gaussian noise with mean $0$ and standard deviation \(\eta\) to simulate uncertainty.
@@ -545,7 +547,7 @@ For both problems, an offset is added to guarantee strictly positive durations, 
 For both Problem configurations, we compare our method with a \emph{predict-and-optimize} solution via MSE and other two \emph{Smart Predict, then Optimize} baselines.
 \emph{SPO+}~\cite{elmachtoub2022smart} is a convex and differentiable implementation of SPO that enables gradient-based learning by minimizing decision regret.
 In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes incorrect pairwise orderings based on their differences, without relying on the specifics of the scheduling problem.
-%\footnote{For each job pair $(i,j)$ where $i$ precedes $j$, we define the surrogate loss as $\sigma(\Delta_{ij})$, where $\Delta_{ij} = f_\omega(x_i) - f_\omega(x_j)$; this applies to both Problem~1 and Problem~2.} to put in appendix
+
 
 \paragraph{Experimental Procedure.}
 \label{sec:experimental_procedure}
@@ -724,7 +726,6 @@ By contrast, our surrogate is provably consistent: it converges exactly to the t
 Learn-to-rank (LTR) methods like RankNet~\cite{burges2005learning}, ListWise~\cite{cao2007learning}, and BPR~\cite{rendle2009bpr} also utilize sigmoid-based penalties.
 However, standard LTR losses optimize generic ranking metrics (e.g., AUC, NDCG) rather than the actual scheduling objective.
 Our approach adapts the LTR mechanism, but weights each decision by its precise contribution to the objective (SCT or makespan), ensuring the model minimizes the relevant operational cost.
-% TODO removed for submission.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -859,7 +860,7 @@ For the SPO+ method, we performed hyperparameter tuning to optimize training per
 Figure~\ref{fig:Linear_dataset_1_machine_problem} (Problem~1) and Figure~\ref{fig:Linear_dataset_2_machine_problem} (Problem~2) visualize the results from Table~\ref{tab:linear_dataset_results}. Each curve reports the mean over $10$ runs and the shaded region indicates the corresponding confidence interval.
 
 For Problem 1, MSE exhibits substantially higher variability across runs, whereas LTR and SASS degrade smoothly as noise increases. Across noise levels, SASS achieves the lowest (or near-lowest) SCT error and remains stable.
-For Problem 2, No single method dominates across all noise levels. In particular, MSE and SPO+ can be either best or worst depending on $\eta$ and exhibit higher variance. SASS is not always the top performer, but it is consistently competitive and comparatively robust to noise.
+For Problem 2, no single method dominates across all noise levels. In particular, MSE and SPO+ can be either best or worst depending on $\eta$ and exhibit higher variance. SASS is not always the top performer, but it is consistently competitive and comparatively robust to noise.
 
 
 
