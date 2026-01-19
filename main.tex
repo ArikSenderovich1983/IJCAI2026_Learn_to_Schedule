@@ -543,8 +543,7 @@ For both problems, an offset is added to guarantee strictly positive durations, 
 
 
 \paragraph{Benchmark methods.}
-
-For both Problem configurations, we compare our method with a \emph{predict-and-optimize} solution via MSE and other two \emph{Smart Predict, then Optimize} baselines.
+For both problem configurations, we compare against MSE (predict-then-optimize), LTR, and SPO+ (a decision-aware baseline from the SPO line of work).
 \emph{SPO+}~\cite{elmachtoub2022smart} is a convex and differentiable implementation of SPO that enables gradient-based learning by minimizing decision regret.
 In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes incorrect pairwise orderings based on their differences, without relying on the specifics of the scheduling problem.
 
@@ -566,7 +565,7 @@ Models are evaluated on the full test set by comparing the SCT and Makespan of j
 \subsection{Results}
 \label{sec:results}
 
-Starting from Problem~1, SASS outperforms the baselines across all noise levels $\eta$ on \emph{linear} datasets, as shown in Table~\ref{tab:linear_dataset_results}.\footnote{For more elaborate results including confidence intervals, see Technical Appendix.} Figure~\ref{fig:nonLinear_problem_1_2} shows the results on \emph{nonlinear} datasets, where SASS remains competitive with the other baselines, which tend to be more stable and exhibit lower standard deviation across runs. MSE performs best at noise levels $0$ and $6$ (Figure~\ref{fig:nonLinear_problem_1_2}), especially at $0$, a typical prediction scenario, but exhibits high variability across runs.
+For Problem~1, SASS (ours) achieves the lowest error across all noise levels $\eta$ on \emph{linear} datasets (Table~\ref{tab:linear_dataset_results}).\footnote{For more elaborate results including confidence intervals, see Technical Appendix.} Figure~\ref{fig:nonLinear_problem_1_2} shows the results on \emph{nonlinear} datasets, where SASS remains competitive with the other baselines, which tend to be more stable and exhibit lower standard deviation across runs. MSE performs best at noise levels $0$ and $6$ (Figure~\ref{fig:nonLinear_problem_1_2}), especially at $0$, a typical prediction scenario, but exhibits high variability across runs.
 The closest competitor for Problem~1 is LTR, since the optimal solution corresponds to an exact ranking of the jobs by duration.
 
 \begin{table}[t]
@@ -664,7 +663,7 @@ For each exam, we extract a feature vector $\mathbf{x}_i$ comprising
 the exam location, scheduled time, department, scheduled duration,
 diagnosis, appointment type, and a linkage indicator for subsequent treatments that 
 will follow.
-To simulate deployment, we trained on the first three weeks of each month and evaluating on the fourth.
+To simulate deployment, we trained on the first three weeks of each month and evaluated on the fourth.
 
 We compare SASS against the three baselines using the \emph{relative SCT error} as in the experiments of Problem 1. 
 Table~\ref{tab:monthly-sct} reports the relative SCT error across the full year (January--December 2021).
@@ -715,7 +714,7 @@ The SPO framework~\cite{elmachtoub2022smart} addresses this by minimizing decisi
 While extensions exist such as SPO Trees for interpretability~\cite{elmachtoub2020decisiontrees}, relaxation-based methods for knapsack~\cite{Mandi2020}, or RL-based constrained optimization~\cite{Silvestri2024}, these
 methods often assume deterministic parameters or struggle with nonlinear scheduling dynamics.
 In scheduling, a further practical challenge is that the decision map induced by comparison-based rules is discontinuous: small changes in predicted parameters can flip precedence or group-assignment decisions and yield a different schedule, which makes direct regret minimization difficult to optimize with standard gradients.
-Accordingly, we benchmark against SPO+ as the standard decision-aware surrogate from the SPO line of work, and we focus on structure-aware surrogates that provide stable, objective-weighted training signals while preserving fast deployment via the known polynomial-time rule.
+Accordingly, we benchmark against SPO+ as the standard decision-aware baseline from the SPO line of work, and we focus on structure-aware surrogates that provide stable, objective-weighted training signals while preserving fast deployment via the known polynomial-time rule.
 
 \noindent\textbf{Semi- and domain-specific SPO.}
 Semi-SPO~\cite{Yang2023Semi,Yan2020Semi} and domain-specific methods for transport~\cite{tian2023}, manufacturing~\cite{Wang2024Refinery}, and energy~\cite{Alrasheedi2024Microgrid} employ specialized losses to improve performance.
