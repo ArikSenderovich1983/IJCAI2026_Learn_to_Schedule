@@ -141,3 +141,36 @@ SPO+   &  &  &  & &  & &  & & & \\
 \caption{SCT errors and training times across different dataset sizes.}
 \label{tab:linear}
 \end{table}
+
+
+\begin{itemize}
+    \item \textbf{Problem 1 (SCT) Generation.} We generate job durations using linear and nonlinear functions:
+    \begin{itemize}
+        \item \emph{Linear model:} \( f(x) = \mathbf{xw} \), where \(\mathbf{w}\) is a randomly generated weight vector, and \(\mathbf{x}\) consists of features uniformly sampled from \([0, 1]\).
+        \item \emph{Nonlinear model:} A nonlinear combination is computed as:
+        \[
+        g(x) = 3x_1^2 + 4.0\sin(2\pi x_2) + 3x_3x_4 + 2x_5^3,
+        \]
+        where \(x_1, \dots, x_5\) are uniformly sampled features.
+        This specific structure introduces smooth nonlinearities, feature interactions, and periodic components.
+    \end{itemize}
+
+    \item \textbf{Problem 2 (Flow Shop) Generation.} We generate durations for two machines, $m_1$ and $m_2$, by incorporating the functions defined for Problem~1 and adding additional elements to ensure a balanced probability of assigning jobs to groups $G_1$ and $G_2$ (see Section~\ref{sec:flowshop}):
+    \begin{itemize}
+    \item \emph{Linear model}: we define $\delta$ as a random variable sampled from a normal distribution in $[0,1]$, and set
+    \[
+    \begin{aligned}
+    m_1(\mathbf{x}) &= f(\mathbf{x}) + \delta, \\
+    m_2(\mathbf{x}) &= f(\mathbf{x}) + \delta.
+    \end{aligned}
+    \]
+    \item \emph{Nonlinear model}: we modify the outputs of the function $g(\mathbf{x})$ by adding or subtracting small linear combinations of the input features for each machine:
+    \[
+    \begin{aligned}
+    m_1(\mathbf{x}) &= g(\mathbf{x}) + 0.3\, x_1 - 0.2\, x_3, \\
+    m_2(\mathbf{x}) &= g(\mathbf{x}) - 0.25\, x_2 + 0.4\, x_4.
+    \end{aligned}
+    \]
+\end{itemize}
+\end{itemize} The functions were chosen to ensure that the learning task remains nontrivial, requiring the model to capture both local and global feature dependencies, while still being interpretable and reproducible.
+An offset is added to the final task durations to guarantee that all values remain strictly positive. Finally, gaussian noise with standard deviation $\eta$ was added to simulate uncertainty.
