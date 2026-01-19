@@ -535,7 +535,7 @@ In the absence of established benchmarks, these two datasets support systematic 
 \paragraph{Problem 1 (SCT) Generation.} We generate job durations using linear and nonlinear functions. The \emph{linear} model is \(f(x) = \mathbf{xw}\), where \(\mathbf{w}\) is a randomly generated weight vector and \(\mathbf{x}\) consists of features uniformly sampled from \([0,1]\). The \emph{nonlinear} model is \(g(x) = 3x_1^2 + 4.0\sin(2\pi x_2) + 3x_3x_4 + 2x_5^3\), with \(x_1, \dots, x_5\) uniformly sampled. This structure introduces smooth nonlinearities, feature interactions, and periodic components.
 
 
-\paragraph{Problem 2 (Flow Shop) Generation.} We generate durations for two machines, \(m_1\) and \(m_2\), by incorporating the functions from Problem~1 and adding elements to ensure a balanced probability of assigning jobs to groups \(G_1\) and \(G_2\) (see Section~\ref{sec:flowshop}). In the \emph{linear model}, we introduce \(\delta\) as a random variable sampled from a standard normal distribution, and add $\delta$ to one of the machines at random, \(m_i(\mathbf{x}) = \mathbf{xw} + \delta\) for either $i=1$ or $i=2$.
+\paragraph{Problem 2 (Flow Shop) Generation.} We generate durations for two machines, \(m_1\) and \(m_2\), by incorporating the functions from Problem~1 and adding elements to ensure a balanced probability of assigning jobs to groups \(G_1\) and \(G_2\) (see Section~\ref{sec:flowshop}). In the \emph{linear model}, for each job we sample \(\delta \sim \mathcal{N}(0,1)\) and add it to exactly one machine chosen uniformly at random (leaving the other machine unperturbed).
 In the \emph{nonlinear model}, we modify \(g(\mathbf{x})\) by adding or subtracting small linear combinations of input features: \(m_1(\mathbf{x}) = g(\mathbf{x}) + 0.3 x_1 - 0.2 x_3\) and \(m_2(\mathbf{x}) = g(\mathbf{x}) - 0.25 x_2 + 0.4 x_4\). These functions ensure the learning task is nontrivial, requiring the model to capture both local and global feature dependencies while remaining interpretable and reproducible. 
 
 For both problems, an offset is added to guarantee strictly positive durations, and to each of the functions, we add Gaussian noise with mean $0$ and standard deviation \(\eta\) to simulate uncertainty.
@@ -581,13 +581,13 @@ The closest competitor for Problem~1 is LTR, since the optimal solution correspo
 \multirow{4}{*}{\rotatebox{90}{\textbf{Problem 1}}} 
 & MSE Loss     & 0.576 & 0.363 & 0.359 & 0.701 & 0.706 & 1.132 \\
 & LTR          & 0.225 & 0.284 & 0.356 & 0.494 & 0.647 & 0.976 \\
-& SASS  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
+& SASS (ours)  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
 & SPO+         & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
 \midrule
 \multirow{4}{*}{\rotatebox{90}{\textbf{Problem 2}}} 
 & MSE & \textbf{0.006} & 0.069 & 0.158 & 0.229 & 0.270 & 0.277 \\
 & LTR & 0.009 & 0.045 & \textbf{0.116} & 0.178 & 0.255 & 0.225 \\
-& SASS  & 0.007 & \textbf{0.042} & 0.132 & 0.128 & \textbf{0.133} & 0.158 \\
+& SASS (ours)  & 0.007 & \textbf{0.042} & 0.132 & 0.128 & \textbf{0.133} & 0.158 \\
 & SPO+  & 0.012    &   0.074  &   0.163    &   \textbf{0.106} &   0.142  &  \textbf{0.126}   \\
 \bottomrule
 \end{tabular}}
@@ -612,7 +612,7 @@ Concerning Problem~2 on \emph{linear} datasets, Table~\ref{tab:linear_dataset_re
 \midrule
 MSE         & 2.79s & 2.71s & 9.68s & 21.62s \\
 LTR   & 25.12s & 30.81s & 35.79s & 45.05s \\
-SASS & 28.64s & 33.26s & 41.57s & 52.59s \\
+SASS (ours) & 28.64s & 33.26s & 41.57s & 52.59s \\
 SPO+        & 26.15s & 59.82s & 23.746s & 24.246s \\
 \bottomrule
 \end{tabular}}
