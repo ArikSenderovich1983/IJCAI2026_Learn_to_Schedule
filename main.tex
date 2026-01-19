@@ -550,7 +550,7 @@ In contrast, the \emph{logistic rank loss} is an LTR surrogate that penalizes in
 \paragraph{Experimental Procedure.}
 \label{sec:experimental_procedure}
 To enable scalability across scheduling problems of arbitrary size, we train a predictive model that is independent of the number of jobs in the input. This is achieved by formulating the learning objective in a pairwise manner, which allows the model to be trained on comparisons between two jobs and then generalizes to schedules of any length. Exhaustively comparing all possible pairwise job combinations in the training set is computationally infeasible; therefore, we adopt an approximation strategy based on sampling a subset of job pairs. 
-Despite this approximation, using only about 2\% of all possible pair comparisons, we outperform or match baseline performances that compare all jobs for scheduling.\footnote{Further analysis is presented in the Technical Appendix.}
+Despite this approximation, using only about 2\% of all possible pair comparisons, we match or outperform baselines that compare all job pairs.\footnote{Further analysis is presented in the Technical Appendix.}
 
 
 For MSE, LTR and our method we use the same two-hidden-layer neural network architecture, number of iterations and, finally, number of pair comparisons, to properly evaluate which of them converges first to a low error. For SPO+, we use a dedicated hyperparameter optimization procedure (e.g., batch size) and a larger number of iterations where needed. Code will be available upon acceptance.
@@ -564,11 +564,11 @@ Models are evaluated on the full test set by comparing the SCT and Makespan of j
 \subsection{Results}
 \label{sec:results}
 
-Starting from Problem~1, SASS outperforms the baselines across all noise levels $\eta$ on \emph{linear} datasets, as shown in Table~\ref{tab:linear_dataset_results}.\footnote{For more elaborate results including confidence intervals, see Technical Appendix.} Figure~\ref{fig:nonLinear_pronblem_1_2} shows the results on \emph{nonlinear} datasets, where SASS remains competitive with the other baselines, which tend to be more stable and exhibit lower standard deviation across runs. MSE performs best at noise levels $0$ and $6$ (Figure~\ref{fig:nonLinear_pronblem_1_2}), especially at $0$, a typical prediction scenario, but exhibits high variability across runs.
+Starting from Problem~1, SASS outperforms the baselines across all noise levels $\eta$ on \emph{linear} datasets, as shown in Table~\ref{tab:linear_dataset_results}.\footnote{For more elaborate results including confidence intervals, see Technical Appendix.} Figure~\ref{fig:nonLinear_problem_1_2} shows the results on \emph{nonlinear} datasets, where SASS remains competitive with the other baselines, which tend to be more stable and exhibit lower standard deviation across runs. MSE performs best at noise levels $0$ and $6$ (Figure~\ref{fig:nonLinear_problem_1_2}), especially at $0$, a typical prediction scenario, but exhibits high variability across runs.
 The closest competitor for Problem~1 is LTR, since the optimal solution corresponds to an exact ranking of the jobs by duration.
 
 \begin{table}[t]
-\caption{SCT and Makespan \% error respect to optimal schedule, across different noise level $\eta$ over \emph{linear} dataset with size $10000$ for Problem~1 and Problem~2,  reporting the mean over 10 runs.}
+\caption{SCT and makespan percentage error with respect to the optimal schedule across noise levels $\eta$ on a \emph{linear} dataset of size $10000$ for Problem~1 and Problem~2 (mean over 10 runs).}
 \centering
 \resizebox{0.45\textwidth}{!}{
 \begin{tabular}{c c c c c c c c}
@@ -592,12 +592,12 @@ The closest competitor for Problem~1 is LTR, since the optimal solution correspo
 
 \label{tab:linear_dataset_results}
 \end{table}
-SPO+, on the other hand, exhibits weak performance both with and without noise, in both \emph{linear} and \emph{nonlinear} settings, as reported in Figure~\ref{fig:nonLinear_pronblem_1_2}. The weak performance of SPO+ in Problem~1 stems from the definition of the problem itself. SPO+ works best when the optimization objective changes smoothly with respect to the predicted order. In contrast, for the SCT problem, even a small error in the predicted ordering can lead to large deviations in the objective, which makes SPO+ less effective.
+SPO+, on the other hand, exhibits weak performance both with and without noise, in both \emph{linear} and \emph{nonlinear} settings, as reported in Figure~\ref{fig:nonLinear_problem_1_2}. The weak performance of SPO+ in Problem~1 stems from the definition of the problem itself. SPO+ works best when the optimization objective changes smoothly with respect to the predicted order. In contrast, for the SCT problem, even a small error in the predicted ordering can lead to large deviations in the objective, which makes SPO+ less effective.
 
 Finally, Table~\ref{tab:times_training} reports the training times over Problem~1 for different nonlinear dataset sizes with noise level $5$. As observed, the fastest method is MSE, but it grows roughly with the dataset size since it compares all elements. In contrast, LTR and SASS scale more smoothly thanks to pairwise approximation (Section~\ref{sec:experimental_procedure}).
 Regarding SPO+, we observe that its training time is independent of the dataset size but depends on the specific problem instance and its gradient. Additionally, SPO+ requires hyperparameter optimization, taking roughly additional \emph{40 minutes} on average per each dataset and noise level combination, to achieve comparable performance.
 
-Concerning Problem~2 on \emph{linear} datasets, Table~\ref{tab:linear_dataset_results} does not highlight a clear winner. However, SASS consistently ranks first or second, demonstrating robust performance across all noise levels, especially at the highest ones. In contrast, MSE, LTR, and SPO+ show inconsistent behaviour, performing best at some noise levels and worst at others.
+Concerning Problem~2 on \emph{linear} datasets, Table~\ref{tab:linear_dataset_results} does not highlight a clear winner. However, SASS consistently ranks first or second, demonstrating robust performance across all noise levels, especially at the highest ones. In contrast, MSE, LTR, and SPO+ show inconsistent behavior, performing best at some noise levels and worst at others.
 
 \begin{table}[t]
 \caption{Training times across different \emph{nonlinear} dataset sizes with noise $10$, computed over $10$ runs.}
@@ -617,7 +617,7 @@ SPO+        & 26.15s & 59.82s & 23.746s & 24.246s \\
 \label{tab:times_training}
 \end{table}
 
-Figure~\ref{fig:nonLinear_pronblem_1_2} shows a similar pattern for \emph{nonlinear} datasets. SASS remains stable and, although it does not always outperform the baselines, it consistently stays close to the best-performing method. LTR performs well when $\eta = 2$ but very poorly when $\eta = 0$, also exhibiting a large variance in the results. Unlike Problem~1, in this setting LTR does not align with the specific solution of the scheduling problem (the Johnson rule), and its performance therefore deteriorates significantly. SPO+ shows better performance on Problem~2 compared to Problem~1, as mentioned earlier: the smooth convergence of the gradient when minimizing the makespan facilitates the learning phase. However, beyond a noise level of $6$, its performance decreases considerably.
+Figure~\ref{fig:nonLinear_problem_1_2} shows a similar pattern for \emph{nonlinear} datasets. SASS remains stable and, although it does not always outperform the baselines, it consistently stays close to the best-performing method. LTR performs well when $\eta = 2$ but very poorly when $\eta = 0$, also exhibiting a large variance in the results. Unlike Problem~1, in this setting LTR does not align with the specific solution of the scheduling problem (the Johnson rule), and its performance therefore deteriorates significantly. SPO+ shows better performance on Problem~2 compared to Problem~1, as mentioned earlier: the smooth convergence of the gradient when minimizing the makespan facilitates the learning phase. However, beyond a noise level of $6$, its performance decreases considerably.
 
 
 %\begin{figure}[t]
@@ -634,7 +634,7 @@ Figure~\ref{fig:nonLinear_pronblem_1_2} shows a similar pattern for \emph{nonlin
 \centering
 \includegraphics[width=0.47\textwidth]{new_plot/nonLinear_together.png}
 \caption{Comparison of SASS and baselines on \emph{Nonlinear} datasets of size $10000$ for Problems~1 and 2, with SCT error shown in log scale (Problem~1) and Makespan percentage error (Problem~2).}
-\label{fig:nonLinear_pronblem_1_2}
+\label{fig:nonLinear_problem_1_2}
 \end{figure}
 
 
@@ -657,7 +657,7 @@ We evaluate the proposed SASS surrogate loss on a real-world dataset
 from \textit{DayHospital}, an outpatient cancer clinic in the United States. The problem that \textit{DayHospital} faces is to sequence patient 
 examinations by physicians with
 the objective of minimizing congestion (SCT). Appointment times are known, but exam durations are uncertain and must therefore be predicted.
-The dataset spans two months (January and November 2021) and contains approximately 201,000 patient pathways derived from real-time location system (RTLS) events.
+ The dataset spans the full year (January--December 2021) and contains approximately 201,000 patient pathways derived from real-time location system (RTLS) events.
 For each exam, we extract a feature vector $\mathbf{x}_i$ comprising
 the exam location, scheduled time, department, scheduled duration,
 diagnosis, appointment type, and a linkage indicator for subsequent treatments that 
@@ -724,15 +724,18 @@ By contrast, our surrogate is provably consistent: it converges exactly to the t
 Learn-to-rank (LTR) methods like RankNet~\cite{burges2005learning}, ListWise~\cite{cao2007learning}, and BPR~\cite{rendle2009bpr} also utilize sigmoid-based penalties.
 However, standard LTR losses optimize generic ranking metrics (e.g., AUC, NDCG) rather than the actual scheduling objective.
 Our approach adapts the LTR mechanism, but weights each decision by its precise contribution to the objective (SCT or makespan), ensuring the model minimizes the relevant operational cost.
-%\todo[inline]{To add discuss on CP or ALMM solution. Insert our paper regarding handling uncertainty durations}
+% TODO removed for submission.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-This paper introduced a surrogate-based framework for predict-and-optimize that exploits the critical-decision structure of polynomial-time algorithms.
-We instantiated this framework for single-machine SCT and two-machine flow shop problems, deriving smooth surrogates that provably converge to decision regret.
-Experiments confirm that this approach yields robust schedules even under high noise, outperforming state-of-the-art baselines by significant margins in both synthetic benchmarks and a real-world hospital case study.
-Future work will extend this decision-aware paradigm to complex multi-stage scheduling and broader combinatorial optimization tasks.
+This paper introduced SASS, a structure-aware surrogate learning approach for surrogate-friendly scheduling problems, where the deterministic optimum is given by a known polynomial-time rule that decomposes into critical decisions.
+By replacing these discrete decisions with smooth, objective-weighted penalties, SASS yields stable gradients and preserves fast deployment by plugging predictions back into the original scheduling rule at inference time.
+We instantiated SASS for single-machine sum of completion times (SPT) and two-machine flow shop makespan minimization (Johnson), and evaluated it on synthetic benchmarks and a real-world outpatient scheduling dataset.
+Across experiments, SASS is consistently more stable than an SPO-based surrogate baseline under increasing noise and competitive with MSE and LTR baselines, while achieving the best performance in the majority of real-world months.
+
+\paragraph{Future work.}
+Promising directions include extending SASS beyond pairwise decisions (e.g., incorporating release times, setup times, or multi-resource constraints), developing principled sampling schemes for critical-decision subsets to further scale training, and broadening the surrogate-friendly class to include high-quality heuristics for problems without known optimal polynomial-time rules.
 
 \bibliographystyle{named}
 \bibliography{mybibfile}
@@ -856,7 +859,7 @@ For the SPO+ method, we performed hyperparameter tuning to optimize training per
 \paragraph{\emph{Linear} dataset experiments}
 
 Figure~\ref{fig:Linear_dataset_1_machine_problem} and Figure~\ref{fig:Linear_dataset_2_machine_problem} represent the results reported in Table~\ref{tab:linear_dataset_results} on \emph{linear} datasets for Problems 1 and 2, respectively, also showing the confidence intervals around the mean computed over $10$ runs for each method and all noise levels.
-Figure~\ref{fig:Linear_dataset_1_machine_problem} highlight the huge variance belonging to MSE, while LTR and SASS showing a linear progression over the different level of noise. SASS is always produce a lower SCT 
+Figure~\ref{fig:Linear_dataset_1_machine_problem} highlights the large variance of MSE, while LTR and SASS show a roughly linear degradation as noise increases. SASS consistently achieves a lower SCT error.
 
 
 
