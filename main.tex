@@ -855,11 +855,12 @@ Patience & 200 -- 4000 \\
 For the SPO+ method, we performed hyperparameter tuning to optimize training performance described in Table~\ref{tab:spo_hyperparams}. The learning rate was searched on a logarithmic scale from $10^{-5}$ to $5 \times 10^{-2}$, the batch size was chosen from $\{5, 10, 20, 30, 50\}$, and the patience for early stopping was varied between 200 and 4000 epochs. This tuning process aimed to balance convergence speed, training stability, and generalization, selecting the combination of hyperparameters that yield the best validation performance.
 
 
-\paragraph{\emph{Linear} dataset experiments}
+\paragraph{\emph{Linear} dataset experiments.}
+Figure~\ref{fig:Linear_dataset_1_machine_problem} (Problem~1) and Figure~\ref{fig:Linear_dataset_2_machine_problem} (Problem~2) visualize the linear-dataset results from Table~\ref{tab:linear_dataset_results}. Each curve reports the mean over $10$ runs and the shaded region indicates the corresponding confidence interval.
 
-Figure~\ref{fig:Linear_dataset_1_machine_problem} and Figure~\ref{fig:Linear_dataset_2_machine_problem} represent the results reported in Table~\ref{tab:linear_dataset_results} on \emph{linear} datasets for Problems 1 and 2, respectively, also showing the confidence intervals around the mean computed over $10$ runs for each method and all noise levels.
-Figure~\ref{fig:Linear_dataset_1_machine_problem} highlights the large variance of MSE, while LTR and SASS show a roughly linear degradation as noise increases. SASS consistently achieves a lower SCT error.
-Concerning Problem~2, Figure~\ref{fig:Linear_dataset_2_machine_problem}, as highlighted in Table~\ref{tab:linear_dataset_results}, shows that no method consistently outperforms the others across all noise levels. In particular, MSE and SPO+ lack robustness and can be the best or worst methods depending on the noise level, also exhibiting large variance across multiple runs. However, SASS, while not always the best, demonstrates consistent performance regardless of the presence of noise.
+\textbf{Problem~1 (SCT).} MSE exhibits substantially higher variability across runs, whereas LTR and SASS degrade smoothly as noise increases. Across noise levels, SASS achieves the lowest (or near-lowest) SCT error and remains stable.
+
+\textbf{Problem~2 (Makespan).} No single method dominates across all noise levels. In particular, MSE and SPO+ can be either best or worst depending on $\eta$ and exhibit higher variance. SASS is not always the top performer, but it is consistently competitive and comparatively robust to noise.
 
 
 
