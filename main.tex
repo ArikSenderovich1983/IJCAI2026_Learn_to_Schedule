@@ -860,8 +860,7 @@ For the SPO+ method, we performed hyperparameter tuning to optimize training per
 
 Figure~\ref{fig:Linear_dataset_1_machine_problem} and Figure~\ref{fig:Linear_dataset_2_machine_problem} represent the results reported in Table~\ref{tab:linear_dataset_results} on \emph{linear} datasets for Problems 1 and 2, respectively, also showing the confidence intervals around the mean computed over $10$ runs for each method and all noise levels.
 Figure~\ref{fig:Linear_dataset_1_machine_problem} highlights the large variance of MSE, while LTR and SASS show a roughly linear degradation as noise increases. SASS consistently achieves a lower SCT error.
-
-
+Concerning Problem~2, Figure~\ref{fig:Linear_dataset_2_machine_problem}, as highlighted in Table~\ref{tab:linear_dataset_results}, shows that no method consistently outperforms the others across all noise levels. In particular, MSE and SPO+ lack robustness and can be the best or worst methods depending on the noise level, also exhibiting large variance across multiple runs. However, SASS, while not always the best, demonstrates consistent performance regardless of the presence of noise.
 
 
 
