@@ -1,0 +1,462 @@
+\documentclass[aspectratio=169, 10pt]{beamer}
+
+% Theme and Colors
+\usetheme{Madrid}
+\usecolortheme{beaver}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+% Packages
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{multirow}
+\usetikzlibrary{shapes, arrows, positioning}
+
+% Custom Commands
+\newcommand{\btext}[1]{{\color{darkred}\textbf{#1}}}
+\newcommand{\m}{\mathcal}
+
+% Title Info
+\title[SASS]{SASS: Structure-Aware Surrogates\\for Learning to Schedule}
+\author[Authors]{Anonymous Authors}
+\institute[]{IJCAI 2026}
+\date{\today}
+
+\begin{document}
+
+%---------------------------------------------------------
+% TITLE SLIDE
+%---------------------------------------------------------
+\begin{frame}
+    \titlepage
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 1: SASS MOTIVATION
+%---------------------------------------------------------
+\begin{frame}{Motivation: Scheduling Under Uncertainty}
+    \textbf{Setting:} Task scheduling with \emph{unknown} parameters (e.g., processing times).
+    
+    \vspace{0.5em}
+    \begin{columns}
+        \column{0.5\textwidth}
+        \begin{block}{The Challenge}
+            \begin{itemize}
+                \item Classical algorithms (SPT, Johnson) assume \textbf{known} parameters
+                \item In reality: parameters must be \textbf{predicted} from features
+                \item Standard ML: minimize MSE $\|\hat{y} - y\|^2$
+            \end{itemize}
+        \end{block}
+        
+        \column{0.5\textwidth}
+        \begin{block}{The Problem}
+            \begin{itemize}
+                \item MSE ignores \textbf{downstream decisions}
+                \item Small prediction error $\Rightarrow$ \alert{large scheduling regret}
+                \item Scheduling rules are \textbf{comparison-based}: discontinuous!
+            \end{itemize}
+        \end{block}
+    \end{columns}
+    
+    \vspace{0.8em}
+    \centering
+    \Large \alert{How do we train predictors that minimize \emph{decision regret}?}
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 1b: Landscape of Approaches
+%---------------------------------------------------------
+\begin{frame}{The Landscape of Approaches}
+    \begin{enumerate}
+        \item \textbf{Predict-then-Optimize (MSE)}
+        \begin{itemize}
+            \item Train predictor to minimize prediction error
+            \item Apply scheduling rule to predictions
+            \item \alert{Problem:} Ignores decision structure entirely
+        \end{itemize}
+        \vspace{0.4em}
+        
+        \item \textbf{Smart Predict-and-Optimize (SPO/SPO+)}
+        \begin{itemize}
+            \item Minimize decision regret: $R(\hat{\theta},\theta^*) = C(\pi(\hat{\theta}); \theta^*) - C(\pi(\theta^*); \theta^*)$
+            \item Uses convex surrogate (SPO+) for gradient-based learning
+            \item \alert{Problem:} Treats algorithm as \textbf{black box}; discontinuous decision map
+        \end{itemize}
+        \vspace{0.4em}
+        
+        \item \textbf{Learn-to-Rank (LTR)}
+        \begin{itemize}
+            \item Sigmoid-based pairwise ranking loss
+            \item \alert{Problem:} Optimizes generic ranking (AUC, NDCG), not scheduling objective
+        \end{itemize}
+    \end{enumerate}
+    
+    \vspace{0.5em}
+    \centering
+    \textbf{Our Approach:} \alert{SASS} --- exploit the \emph{structure} of polynomial-time rules
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 2: SASS IN 4 STEPS
+%---------------------------------------------------------
+\begin{frame}{SASS: The 4-Step Recipe}
+    \textbf{Target:} \emph{Surrogate-Friendly Scheduling Problems}\\
+    \small Deterministic optimum given by polynomial-time rule $\mathcal{A}$ with decomposable \textbf{critical decisions}.
+    
+    \vspace{0.6em}
+    \normalsize
+    \begin{enumerate}
+        \item[\textbf{Step 1.}] \textbf{Prediction targets:} Define unknown parameters $\theta_i^*$ (or decision-relevant scores)
+        
+        \vspace{0.3em}
+        \item[\textbf{Step 2.}] \textbf{Deterministic rule \& critical decisions:}
+        \begin{itemize}
+            \item Identify $\mathcal{A}(\theta)$ (e.g., SPT, Johnson)
+            \item Extract critical decision set $\mathcal{K}$ (pairwise orderings, group assignments, threshold tests)
+        \end{itemize}
+        
+        \vspace{0.3em}
+        \item[\textbf{Step 3.}] \textbf{Objective-weighted smooth surrogate:}
+        \[
+        L_{\mathrm{surr}}(\omega) = \sum_{d \in \mathcal{K}} 
+        \underbrace{\phi_d(\theta^*)}_{\substack{\text{cost of}\\\text{wrong } d}} \cdot 
+        \underbrace{\sigma\!\left(\frac{-m_d(\omega)}{\lambda}\right)}_{\substack{\text{smooth}\\\text{penalty}}}
+        \]
+        where $m_d > 0 \Leftrightarrow$ decision $d$ is correct (oriented margin)
+        
+        \vspace{0.3em}
+        \item[\textbf{Step 4.}] \textbf{Train \& deploy:} $\omega^* = \arg\min L_{\mathrm{surr}}$; at inference: $\hat{\pi} = \mathcal{A}(f_{\omega^*}(x))$
+    \end{enumerate}
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 2b: Surrogate Construction Details
+%---------------------------------------------------------
+\begin{frame}{Step 3: Building the Surrogate}
+    Three ingredients for each critical decision $d \in \mathcal{K}$:
+    
+    \vspace{0.5em}
+    \textbf{(a) Decision score $s_d(\omega; x)$}
+    \begin{itemize}
+        \item Scalar output from predictor; sign encodes model's preferred outcome
+        \item Example: $s_{i,j} = \hat{\theta}_i - \hat{\theta}_j$ for pairwise comparison
+    \end{itemize}
+    
+    \vspace{0.4em}
+    \textbf{(b) Oriented margin $m_d(\omega; x, \theta^*)$}
+    \begin{itemize}
+        \item $m_d > 0 \Leftrightarrow$ model agrees with ground truth
+        \item Multiply $s_d$ by ground-truth label so correct side $\to$ positive margin
+    \end{itemize}
+    
+    \vspace{0.4em}
+    \textbf{(c) Objective-weighted sigmoid penalty}
+    \[
+    \phi_d(\theta^*) \cdot \sigma\!\left(\frac{-m_d}{\lambda}\right)
+    \]
+    \begin{itemize}
+        \item $\phi_d \ge 0$: impact on objective if decision $d$ is wrong (SCT increase, makespan increase)
+        \item $\lambda > 0$: temperature (smoothness vs.\ sharpness)
+    \end{itemize}
+    
+    \vspace{0.3em}
+    \centering
+    \alert{Key insight:} weight decisions by their \emph{operational cost}, not uniformly
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 3: NICE PROPERTIES
+%---------------------------------------------------------
+\begin{frame}{Nice Properties of the Surrogate}
+    \begin{enumerate}
+        \item \textbf{Differentiability}\\
+        $L_{\mathrm{surr}}$ is infinitely differentiable w.r.t.\ $\omega$ $\Rightarrow$ standard backprop
+        
+        \vspace{0.4em}
+        \item \textbf{Tunable sensitivity via $\lambda$}\\
+        Small $\lambda$: sharper, closer to hard indicator\\
+        Large $\lambda$: smoother, more stable optimization
+        
+        \vspace{0.4em}
+        \item \textbf{Decision-weighted penalization}\\
+        Errors with high objective impact $\phi_d$ receive proportionally larger gradients
+        
+        \vspace{0.4em}
+        \item \textbf{Consistency (Convergence to regret)}\\[0.3em]
+        \[
+        \lim_{\lambda \to 0} L_{\mathrm{surr}} \;=\; \sum_{d \in \mathcal{K}} \phi_d \cdot \mathbb{I}[\text{decision } d \text{ wrong}] \;=\; \text{Decision Regret}
+        \]
+    \end{enumerate}
+    
+    \vspace{0.5em}
+    \centering
+    \textit{Smooth during training, exact at the limit.}
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 4: SCT INSTANCE (Problem 1)
+%---------------------------------------------------------
+\begin{frame}{Problem 1: Single-Machine SCT Minimization}
+    \textbf{Objective:} Minimize Sum of Completion Times (SCT).\\
+    \textbf{Optimal rule:} Shortest Processing Time (SPT) --- sort jobs by duration.
+    
+    \vspace{0.5em}
+    \textbf{Step 1.} Unknown: processing time $\theta_i^* = y_i$. Predict $\hat{y}_i = f_\omega(x_i)$.
+    
+    \vspace{0.3em}
+    \textbf{Step 2.} $\mathcal{A} = \mathcal{A}_{\mathrm{SPT}}$; critical decisions $\mathcal{K} = \{(i,j): i < j\}$ (pairwise orderings).
+    
+    \vspace{0.3em}
+    \textbf{Step 3.} For pair $(i,j)$ with $y_i < y_j$:
+    \begin{itemize}
+        \item Decision score: $s_{i,j} = \hat{y}_i - \hat{y}_j$
+        \item Correct order: $i$ before $j$ $\Rightarrow$ misordering when $s_{i,j} > 0$
+        \item Weight: $R_{i,j} = (j - i)(y_j - y_i)$ \hfill {\small (SCT increase from swap)}
+    \end{itemize}
+    
+    \vspace{0.3em}
+    \textbf{The SASS Loss:}
+    \[
+    \boxed{
+    L_{\mathrm{SCT}} = \sum_{\theta_i^* < \theta_j^*} R_{i,j} \cdot \sigma\!\left(\frac{\hat{y}_i - \hat{y}_j}{\lambda}\right)
+    }
+    \]
+    
+    \vspace{0.3em}
+    \textbf{Step 4.} Deploy: $\hat{\pi} = \mathcal{A}_{\mathrm{SPT}}(\hat{y})$ (sort by predicted durations).
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 5: FLOW SHOP INSTANCE (Problem 2)
+%---------------------------------------------------------
+\begin{frame}{Problem 2: Two-Machine Flow Shop ($F2 \| C_{\max}$)}
+    \textbf{Objective:} Minimize makespan.\\
+    \textbf{Optimal rule:} Johnson's Rule.
+    
+    \vspace{0.4em}
+    \textbf{Step 1.} Unknown: $(p_{i1}, p_{i2})$. Predict decision-relevant scores $(\hat{d}_i, \hat{s}_i) = f_\omega(x_i)$.
+    
+    \vspace{0.3em}
+    \textbf{Step 2.} Johnson's Rule:
+    \begin{enumerate}
+        \item Partition: $G_1 = \{i: p_{i1} < p_{i2}\}$, $G_2 = \{i: p_{i1} \ge p_{i2}\}$
+        \item Sort $G_1$ ascending by $p_{i1}$; sort $G_2$ descending by $p_{i2}$
+    \end{enumerate}
+    Critical decisions: $\mathcal{K} = \mathcal{K}_{\mathrm{group}} \cup \mathcal{K}_{\mathrm{order}}$
+    
+    \vspace{0.3em}
+    \textbf{Step 3.} Two loss components:
+    \[
+    L_{\mathrm{group}} = \sum_i |p_{i1} - p_{i2}| \cdot \sigma\!\left(\frac{-\hat{d}_i \cdot d_i}{\lambda}\right), \quad d_i = p_{i1} - p_{i2}
+    \]
+    \[
+    L_{\mathrm{order}} = \sum_{\substack{i,j \text{ same group}}} \Delta_{i,j} \cdot \sigma(\cdots), \quad \Delta_{i,j} = T_{j,i} - T_{i,j}
+    \]
+    \[
+    \boxed{L_{\mathrm{Johnson}} = L_{\mathrm{group}} + L_{\mathrm{order}}}
+    \]
+    
+    \textbf{Step 4.} Deploy: partition by $\hat{d}_i$, sort by $\hat{s}_i$.
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 6: SYNTHETIC EXPERIMENTS
+%---------------------------------------------------------
+\begin{frame}{Synthetic Experiments: Setup}
+    \textbf{Datasets:}
+    \begin{itemize}
+        \item \textbf{Linear:} $f(x) = \mathbf{x}\mathbf{w}$, features $\sim \mathrm{Uniform}[0,1]$
+        \item \textbf{Nonlinear:} $g(x) = 3x_1^2 + 4\sin(2\pi x_2) + 3x_3 x_4 + 2x_5^3$
+        \item Noise levels $\eta \in \{0, 2, 4, 6, 8, 10\}$
+    \end{itemize}
+    
+    \vspace{0.4em}
+    \textbf{Baselines:}
+    \begin{itemize}
+        \item \textbf{MSE} (predict-then-optimize)
+        \item \textbf{LTR} (logistic rank loss)
+        \item \textbf{SPO+} (decision-aware baseline from SPO line of work)
+    \end{itemize}
+    
+    \vspace{0.4em}
+    \textbf{Procedure:}
+    \begin{itemize}
+        \item Same 2-hidden-layer NN for MSE, LTR, SASS
+        \item Pairwise sampling ($\sim$2\% of pairs) for scalability
+        \item Dedicated hyperparameter tuning for SPO+
+    \end{itemize}
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 6b: RESULTS TABLE
+%---------------------------------------------------------
+\begin{frame}{Synthetic Results: Linear Datasets}
+    \centering
+    \small
+    \begin{tabular}{c c c c c c c c}
+    \toprule
+     & \textbf{Method} & \multicolumn{6}{c}{\textbf{Noise Level $\eta$}} \\
+     &  & 0 & 2 & 4 & 6 & 8 & 10 \\
+    \midrule
+    \multirow{4}{*}{\rotatebox{90}{\textbf{Prob.\ 1}}} 
+    & MSE   & 0.576 & 0.363 & 0.359 & 0.701 & 0.706 & 1.132 \\
+    & LTR          & 0.225 & 0.284 & 0.356 & 0.494 & 0.647 & 0.976 \\
+    & \alert{SASS (ours)}  & \textbf{0.209} & \textbf{0.222} & \textbf{0.270} & \textbf{0.402} & \textbf{0.622} & \textbf{0.954} \\
+    & SPO+         & 2.262 & 2.445 & 6.125 & 6.450 & 8.589 & 6.178 \\
+    \midrule
+    \multirow{4}{*}{\rotatebox{90}{\textbf{Prob.\ 2}}} 
+    & MSE & \textbf{0.006} & 0.069 & 0.158 & 0.229 & 0.270 & 0.277 \\
+    & LTR & 0.009 & 0.045 & \textbf{0.116} & 0.178 & 0.255 & 0.225 \\
+    & \alert{SASS (ours)}  & 0.007 & \textbf{0.042} & 0.132 & 0.128 & \textbf{0.133} & 0.158 \\
+    & SPO+  & 0.012 & 0.074 & 0.163 & \textbf{0.106} & 0.142 & \textbf{0.126} \\
+    \bottomrule
+    \end{tabular}
+    
+    \vspace{0.6em}
+    \textbf{Key takeaways:}
+    \begin{itemize}
+        \item \textbf{Problem 1:} SASS wins at all noise levels; SPO+ struggles
+        \item \textbf{Problem 2:} No single winner, but SASS consistently 1st or 2nd
+    \end{itemize}
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 6c: NONLINEAR RESULTS FIGURE
+%---------------------------------------------------------
+\begin{frame}{Synthetic Results: Nonlinear Datasets}
+    \centering
+    \includegraphics[width=0.70\textwidth]{new_plot/nonLinear_together.png}
+    
+    \vspace{0.4em}
+    \begin{itemize}
+        \item SASS remains \textbf{competitive and stable} across noise levels
+        \item MSE can win at $\eta=0$ but exhibits \textbf{high variance}
+        \item SPO+ improves on Problem 2 but degrades past $\eta=6$
+    \end{itemize}
+\end{frame}
+
+%---------------------------------------------------------
+% SLIDE 7: CASE STUDY
+%---------------------------------------------------------
+\begin{frame}{Case Study: Outpatient Scheduling at DayHospital}
+    \textbf{Setting:} Outpatient cancer clinic (USA), full year 2021\\
+    $\sim$201,000 patient pathways; goal: minimize congestion (SCT)
+    
+    \vspace{0.4em}
+    \textbf{Features:} exam location, scheduled time, department, diagnosis, appointment type, etc.\\
+    \textbf{Protocol:} Train on weeks 1--3, evaluate on week 4 of each month.
+    
+    \vspace{0.5em}
+    \centering
+    \small
+    \begin{tabular}{lcccccc}
+    \toprule
+    Method & Jan & Feb & Mar & Apr & May & Jun \\
+    \midrule
+    SPO+        & 0.48 & 0.56 & 0.53 & 0.53 & 0.52 & 0.42 \\
+    LTR         & 0.33 & 0.36 & 0.33 & 0.35 & 0.33 & 0.33 \\
+    MSE         & 0.35 & 0.38 & 0.36 & 0.35 & 0.34 & 0.34 \\
+    \alert{SASS (ours)} & \textbf{0.31} & \textbf{0.34} & \textbf{0.33} & \textbf{0.33} & \textbf{0.30} & \textbf{0.31} \\
+    \midrule
+    Method & Jul & Aug & Sep & Oct & Nov & Dec \\
+    \midrule
+    SPO+        & 0.48 & 0.38 & 0.40 & 0.49 & 0.42 & 0.50 \\
+    LTR         & 0.33 & \textbf{0.28} & 0.34 & 0.32 & 0.37 & 0.38 \\
+    MSE         & 0.33 & 0.31 & 0.34 & 0.36 & 0.37 & 0.41 \\
+    \alert{SASS (ours)} & \textbf{0.30} & 0.29 & \textbf{0.31} & \textbf{0.29} & \textbf{0.33} & \textbf{0.35} \\
+    \bottomrule
+    \end{tabular}
+    
+    \vspace{0.4em}
+    \textbf{SASS wins 11/12 months.} Avg.\ error: \textbf{0.316} vs.\ 0.353 (MSE), 0.338 (LTR), 0.476 (SPO+).
+\end{frame}
+
+%---------------------------------------------------------
+% CONCLUSION
+%---------------------------------------------------------
+\begin{frame}{Summary}
+    \Large
+    \begin{enumerate}
+        \item \textbf{Surrogate-friendly scheduling:} polynomial-time rules with decomposable critical decisions
+        
+        \vspace{0.3em}
+        \item \textbf{SASS:} smooth, objective-weighted surrogate that targets these decisions
+        
+        \vspace{0.3em}
+        \item \textbf{Theoretical guarantees:} differentiable, tunable, converges to regret as $\lambda \to 0$
+        
+        \vspace{0.3em}
+        \item \textbf{Empirical results:}
+        \begin{itemize}
+            \item More stable than SPO+ under noise
+            \item Competitive with MSE/LTR on synthetics
+            \item \textbf{Best in 11/12 months} on real-world hospital data
+        \end{itemize}
+    \end{enumerate}
+    
+    \vspace{0.8em}
+    \centering
+    \textit{Code available upon acceptance.}
+\end{frame}
+
+%---------------------------------------------------------
+% BACKUP SLIDES
+%---------------------------------------------------------
+\appendix
+\section{Backup Slides}
+
+\begin{frame}{Backup: SCT Weight Derivation}
+    \textbf{Why} $R_{i,j} = (j - i)(y_j - y_i)$?
+    
+    \vspace{0.5em}
+    SCT for a sequence: $\displaystyle \sum_{k=1}^{n} (n + 1 - k)\, y_{(k)}$
+    
+    \vspace{0.5em}
+    Swapping positions $i$ and $j$ (with $i < j$):
+    \begin{align*}
+        \Delta &= \bigl[(n{+}1{-}i)\,y_j + (n{+}1{-}j)\,y_i\bigr] - \bigl[(n{+}1{-}i)\,y_i + (n{+}1{-}j)\,y_j\bigr] \\
+               &= (y_j - y_i)\bigl[(n{+}1{-}i) - (n{+}1{-}j)\bigr] \\
+               &= (y_j - y_i)(j - i)
+    \end{align*}
+    
+    \vspace{0.3em}
+    Hence, larger position gap or larger duration difference $\Rightarrow$ larger SCT penalty.
+\end{frame}
+
+\begin{frame}{Backup: Training Times}
+    \centering
+    \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Method} & \multicolumn{4}{c}{\textbf{Dataset Size}} \\
+                     & 5000 & 10000 & 50000 & 100000 \\
+    \midrule
+    MSE         & 2.79s & 2.71s & 9.68s & 21.62s \\
+    LTR   & 25.12s & 30.81s & 35.79s & 45.05s \\
+    SASS (ours) & 28.64s & 33.26s & 41.57s & 52.59s \\
+    SPO+        & 26.15s & 59.82s & 23.75s & 24.25s \\
+    \bottomrule
+    \end{tabular}
+    
+    \vspace{0.6em}
+    \begin{itemize}
+        \item MSE fastest but scales with dataset size
+        \item LTR and SASS scale smoothly via pairwise sampling
+        \item SPO+ training time dataset-independent but requires $\sim$40 min hyperparameter tuning
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: Pairwise Sampling Analysis}
+    \centering
+    \includegraphics[width=0.55\textwidth]{new_plot/analysis_number_of_pairs_2.png}
+    
+    \vspace{0.4em}
+    \begin{itemize}
+        \item Using $\sim$2\% of pairs achieves comparable performance
+        \item Training time $<1$ min up to $\sim$900k pairs
+        \item Enables scalability to large scheduling instances
+    \end{itemize}
+\end{frame}
+
+\end{document}
